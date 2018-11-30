@@ -1,8 +1,9 @@
 package com.source3g.tankclient.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.source3g.tankclient.entity.Action;
 import com.source3g.tankclient.entity.ClientParam;
-import com.source3g.tankclient.service.ClintService;
+import com.source3g.tankclient.service.ClientService;
 import com.source3g.tankclient.service.MapService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,24 +21,32 @@ import java.util.List;
 public class ClientController {
 
     @Autowired
-    private ClintService clintService;
+    private ClientService clientService;
 
     @Autowired
     private MapService mapService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @PostMapping("/init")
     public void init(@RequestBody ClientParam clientParam) throws Exception {
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
+        clientService.init(clientParam);
     }
 
 
     @PostMapping("/action")
-    public List<Action> action(@RequestBody ClientParam clientParam) throws IOException {
+    public synchronized List<Action> action(@RequestBody ClientParam clientParam) throws IOException {
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
 
-        return clintService.action(clientParam);
+        List<Action> actions = clientService.action(clientParam);
+
+        actions.stream().filter(item->item.getLength()>0).forEach(item-> System.out.println(item.getTId()+":"+item.getLength()+":"+item.getDirection()));
+        log.info("actions:{}",actions);
+        return actions;
     }
 
 

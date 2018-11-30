@@ -1,6 +1,7 @@
 package com.source3g.tankclient.entity;
 
 public enum MapEnum {
+    T1,
     M1,
     M2,
     M3,

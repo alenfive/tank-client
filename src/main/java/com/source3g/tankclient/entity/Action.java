@@ -15,6 +15,7 @@ public class Action {
     private DirectionEnum direction;
     private ActionTypeEnum type;
     private Integer length;
+    private boolean useGlod;
 
     @JsonProperty("tId")
     public String getTId() {

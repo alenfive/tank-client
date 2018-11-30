@@ -31,6 +31,11 @@ public class AStar {
         return tempNode;
     }
 
+    public void clear(){
+        openList = new ArrayList<>();
+        closeList = new ArrayList<>();
+    }
+
     public AStar(TMap view){
         this.view = view;
     }
@@ -72,7 +77,7 @@ public class AStar {
     }
 
     public Position findPath(Position startNode, Position endNode) {
-
+        startNode.setParent(null);
         // 把起点加入 open list
         openList.add(startNode);
 
@@ -170,4 +175,14 @@ public class AStar {
         return false;
     }
 
+    public int countStep(Position currPos, Position targetPos) {
+        Position head = findPath(currPos,targetPos);
+        int step = 0;
+        if(head == null)return step;
+        while (head.getParent() != null){
+            head = head.getParent();
+            step ++;
+        }
+        return step;
+    }
 }

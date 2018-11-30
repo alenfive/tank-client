@@ -43,6 +43,9 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
             case 5:break;
         }
 
+        //获取最大行进路线
+        nextPos = mapService.getFinalNext(tank,currPos,nextPos);
+
         //允许下一步，替换地图
         if(nextPos != null){
             params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
@@ -87,23 +90,8 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
         }
 
         AStar aStar = new AStar(params.getView());
-        Position position = aStar.findPath(currPos,targetPos);
 
-        if(position == null || position.getParent() == null)return null;
-
-        int yidong = 0;
-
-        while (position.getParent() != null && yidong<tank.getYidong()){
-            //判断是否是直线路径
-            if(position.getParent().getColIndex() != currPos.getColIndex() &&
-                    position.getParent().getRowIndex() != currPos.getRowIndex()){
-                break;
-            }
-            position = position.getParent();
-            yidong ++;
-        }
-
-        return position;
+        return aStar.findPath(currPos,targetPos);
 
     }
 

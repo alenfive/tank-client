@@ -28,9 +28,19 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
         String teamId = params.getTeam();
         globalValues.setResultAction(new ArrayList<>());
         try {
-            globalValues.setView(objectMapper.readValue(objectMapper.writeValueAsString(params.getView()), TMap.class));
-            TeamDetail currTeam = "tB".equals(teamId)?params.getTB():params.getTC();
-            globalValues.setCurrTeam(objectMapper.readValue(objectMapper.writeValueAsString(currTeam), TeamDetail.class));
+
+            TMap view = objectMapper.readValue(objectMapper.writeValueAsString(params.getView()), TMap.class);
+            TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
+            TeamDetail bossTeam = objectMapper.readValue(objectMapper.writeValueAsString(params.getTA()), TeamDetail.class);
+            TeamDetail enemyTeam = objectMapper.readValue(objectMapper.writeValueAsString(!"tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
+
+
+            //深拷贝一份
+            globalValues.setView(view);
+            globalValues.setCurrTeam(currTeam);
+            globalValues.setBossTeam(bossTeam);
+            globalValues.setEnemyTeam(enemyTeam);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

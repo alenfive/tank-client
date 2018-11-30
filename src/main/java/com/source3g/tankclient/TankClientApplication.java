@@ -24,10 +24,10 @@ public class TankClientApplication implements CommandLineRunner{
 
 	@Override
 	public void run(String... strings) throws Exception {
-		TMap tMap = mapService.getMap("9X12");
+		TMap tMap = mapService.getMap("32X24");
 		AStar aStar = new AStar(tMap);
-		Position currPos = new Position(8,8);
-		Position targetPos = new Position(6,6);
+		Position currPos = new Position(4,10);
+		Position targetPos = new Position(4,12);
 		mapService.log(tMap);
 		Position nextPos = aStar.findPath(currPos,targetPos);
 		while (nextPos != null){

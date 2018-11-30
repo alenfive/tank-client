@@ -20,4 +20,6 @@ public class GlobalValues {
     public TeamDetail currTeam;
     public TMap view;
     public List<Action> resultAction;
+    public TeamDetail bossTeam;
+    public TeamDetail enemyTeam;
 }

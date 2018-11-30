@@ -1,8 +1,10 @@
 package com.source3g.tankclient.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.source3g.tankclient.entity.MapEnum;
 import com.source3g.tankclient.entity.Position;
 import com.source3g.tankclient.entity.TMap;
+import com.source3g.tankclient.entity.Tank;
 import com.wangxiaobao.common.exception.BizException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -107,6 +109,10 @@ public class MapService {
         return null;
     }
 
+    /**
+     * 打印二维数据
+     * @param view
+     */
     public void log(TMap view) {
         for(int i=0;i<view.getRowLen();i++){
             for(int k=0;k<view.getColLen();k++){
@@ -120,6 +126,12 @@ public class MapService {
 
     }
 
+    /**
+     * 标记地图区域中心点
+     * @param view
+     * @param regions
+     * @param flag
+     */
     public void flag(TMap view, List<Position> regions, String flag) {
         System.out.println("--------------------------------------------------------------");
         for(int i=0;i<view.getRowLen();i++){
@@ -138,5 +150,55 @@ public class MapService {
             }
             System.out.println("");
         }
+    }
+
+    public List<Position> findByMapEnum(TMap view,int startR, int endR, int startC, int endC, MapEnum ... mapEnum){
+
+        startR = startR<0?0:startR;
+        endR = endR>=view.getRowLen()?view.getRowLen()-1:endR;
+        startC = startC<0?0:startC;
+        endC = endC>=view.getColLen()?view.getColLen()-1:endC;
+
+        List<Position> positions = new ArrayList<>();
+        for(int i=startR;i<=endR;i++){
+            for(int k=startC;k<=endC;k++){
+                if(contain(view,mapEnum,i,k)){
+                    positions.add(new Position(i,k));
+                }
+            }
+        }
+        return positions;
+    }
+
+    private boolean contain(TMap view, MapEnum[] mapEnum, int i, int k) {
+        for (MapEnum item : mapEnum){
+            if(item.name().equals(view.getMap().get(i).get(k))){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 获取最大行进路线
+     * @param tank
+     * @param nextPos
+     * @return
+     */
+    public Position getFinalNext(Tank tank, Position currPos, Position nextPos) {
+        if(nextPos == null || nextPos.getParent() == null)return null;
+
+        int yidong = 0;
+
+        while (nextPos.getParent() != null && yidong<tank.getYidong()){
+            //判断是否是直线路径
+            if(nextPos.getParent().getColIndex() != currPos.getColIndex() &&
+                    nextPos.getParent().getRowIndex() != currPos.getRowIndex()){
+                break;
+            }
+            nextPos = nextPos.getParent();
+            yidong ++;
+        }
+        return nextPos;
     }
 }

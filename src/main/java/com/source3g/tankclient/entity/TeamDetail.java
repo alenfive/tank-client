@@ -14,6 +14,7 @@ import java.util.List;
 public class TeamDetail {
     private Integer glod;
     private String name;
-    private String serverUrl;
     private List<Tank> tanks;
+    //额外属性
+    private int extend;
 }

@@ -185,7 +185,7 @@ public class MapService {
      * @param nextPos
      * @return
      */
-    public Position getFinalNext(Tank tank, Position currPos, Position nextPos) {
+    public Position getMaxNext(Tank tank, Position currPos, Position nextPos) {
         if(nextPos == null || nextPos.getParent() == null)return null;
 
         int yidong = 0;

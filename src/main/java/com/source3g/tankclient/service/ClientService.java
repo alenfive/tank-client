@@ -27,6 +27,10 @@ public class ClientService {
     private AttackBossAction attackBossAction;
     @Autowired
     private DefenseAction defenseAction;
+    @Autowired
+    private DiedAction diedAction;
+    @Autowired
+    private AttackEnemyAction attackEnemyAction;
 
     public void init(ClientParam clientParam) {
 
@@ -42,6 +46,12 @@ public class ClientService {
         for(Action action : globalValues.getResultAction()){
             try{
 
+                //坦克已死亡
+                NodeType diedType = diedAction.process(globalValues,action);
+                if(NodeType.Success.equals(diedType)){
+                    continue;
+                }
+
                 //捡复活币
                 NodeType glodType = glodPickupAction.process(globalValues,action);
                 if(NodeType.Success.equals(glodType)){
@@ -54,8 +64,17 @@ public class ClientService {
                     continue;
                 }
 
-                //攻击敌方坦克
+                //撤退
+                NodeType defenseType = defenseAction.process(globalValues,action);
+                if(NodeType.Success.equals(defenseType)){
+                    continue;
+                }
 
+                //攻击敌方坦克
+                NodeType enemyType = attackEnemyAction.process(globalValues,action);
+                if(NodeType.Success.equals(enemyType)){
+                    continue;
+                }
 
                 //扫图
                 NodeType onPatrolType = onPatrolAction.process(globalValues,action);
@@ -63,11 +82,6 @@ public class ClientService {
                     continue;
                 }
 
-                //撤退
-                NodeType defenseType = defenseAction.process(globalValues,action);
-                if(NodeType.Success.equals(defenseType)){
-                    continue;
-                }
             }catch (Exception e){
                 e.printStackTrace();
             }

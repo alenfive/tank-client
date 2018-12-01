@@ -26,10 +26,6 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,Action> {
         TMap view = params.getView();
         Position currPos = MapUtils.getPosition(params.getView(),action.getTId());
 
-        //坦克已死亡
-        if(currPos == null){
-            return NodeType.Failure;
-        }
         Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
         //发现BOSS
         List<Position> positions = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,MapEnum.A1);
@@ -76,7 +72,7 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,Action> {
         aStar.clear();
         Position nextPos = aStar.findPath(currPos,nextTempPos);
         //获取最大行进路线
-        nextPos = mapService.getFinalNext(tank,currPos,nextPos);
+        nextPos = mapService.getMaxNext(tank,currPos,nextPos);
 
         //允许下一步，替换地图
         params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());

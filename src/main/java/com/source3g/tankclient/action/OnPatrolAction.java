@@ -27,24 +27,19 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
 
         Position currPos = MapUtils.getPosition(params.getView(),action.getTId());
 
-        //坦克已死亡
-        if(currPos == null){
-            return NodeType.Failure;
-        }
-
         Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
 
         Position nextPos = null;
         switch (suffix){
-            case 1:break;
-            case 2:break;
+            case 1:nextPos = quick(params,tank,currPos,1);break;
+            case 2:nextPos = quick(params,tank,currPos,1);break;
             case 3:nextPos = quick(params,tank,currPos,1);break;
             case 4:nextPos = quick(params,tank,currPos,-1);break;
-            case 5:break;
+            case 5:nextPos = quick(params,tank,currPos,-1);break;
         }
 
         //获取最大行进路线
-        nextPos = mapService.getFinalNext(tank,currPos,nextPos);
+        nextPos = mapService.getMaxNext(tank,currPos,nextPos);
 
         //允许下一步，替换地图
         if(nextPos != null){

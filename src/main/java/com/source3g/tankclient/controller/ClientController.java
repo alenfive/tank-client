@@ -1,6 +1,5 @@
 package com.source3g.tankclient.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.source3g.tankclient.entity.Action;
 import com.source3g.tankclient.entity.ClientParam;
 import com.source3g.tankclient.service.ClientService;
@@ -25,9 +24,6 @@ public class ClientController {
 
     @Autowired
     private MapService mapService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @PostMapping("/init")
     public void init(@RequestBody ClientParam clientParam) throws Exception {

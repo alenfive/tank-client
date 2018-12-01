@@ -25,11 +25,6 @@ public class GlodPickupAction extends AbstractActiion<GlobalValues,Action> {
         TMap view = params.getView();
         Position currPos = MapUtils.getPosition(params.getView(),action.getTId());
 
-        //坦克已死亡
-        if(currPos == null){
-            return NodeType.Failure;
-        }
-
         Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
 
         int startR = currPos.getRowIndex()-tank.getShiye();
@@ -37,6 +32,7 @@ public class GlodPickupAction extends AbstractActiion<GlobalValues,Action> {
         int startC = currPos.getColIndex()-tank.getShiye();
         int endC = currPos.getColIndex()+tank.getShiye();
 
+        //可视范围内存在复活币
         List<Position> positions = mapService.findByMapEnum(view,startR,endR,startC,endC,MapEnum.M2);
 
         if(positions.isEmpty()){
@@ -47,7 +43,7 @@ public class GlodPickupAction extends AbstractActiion<GlobalValues,Action> {
         Position nextPos = aStar.findPath(currPos,positions.get(0));
 
         //计算移动的最大距离
-        nextPos = mapService.getFinalNext(tank,currPos,nextPos);
+        nextPos = mapService.getMaxNext(tank,currPos,nextPos);
         if(nextPos == null){
             return NodeType.Failure;
         }

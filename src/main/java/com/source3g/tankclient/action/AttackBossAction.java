@@ -52,6 +52,8 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,Action> {
             return NodeType.Success;
         }
 
+        targetPos = positions.get(0);
+
         //制定路线
         Position nextPos = formationService.random(params,tank,currPos,targetPos);
         if(nextPos == null){

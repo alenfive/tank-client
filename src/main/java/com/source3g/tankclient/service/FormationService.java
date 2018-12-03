@@ -8,6 +8,7 @@ import com.source3g.tankclient.utils.AStar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -101,7 +102,7 @@ public class FormationService {
      */
     public Position getMass(GlobalValues params){
         List<Tank> tanks = params.getCurrTeam().getTanks().stream().filter(item->item.getShengyushengming()>0).collect(Collectors.toList());
-        Tank maxShengMing = tanks.stream().max((a,b)-> a.getShengming()-b.getShengming()).get();
+        Tank maxShengMing = tanks.stream().max(Comparator.comparingInt(Tank::getShengming)).get();
         if(maxShengMing == null)return null;
         return mapService.getPosition(params.getView(),maxShengMing.getTId());
 

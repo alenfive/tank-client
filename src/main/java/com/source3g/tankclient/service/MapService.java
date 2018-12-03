@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MapService {
@@ -152,6 +153,16 @@ public class MapService {
         }
     }
 
+    /**
+     * 根据元素查询范围内坐标
+     * @param view
+     * @param startR
+     * @param endR
+     * @param startC
+     * @param endC
+     * @param mapEnum
+     * @return
+     */
     public List<Position> findByMapEnum(TMap view,int startR, int endR, int startC, int endC, MapEnum ... mapEnum){
 
         startR = startR<0?0:startR;
@@ -170,6 +181,14 @@ public class MapService {
         return positions;
     }
 
+    /**
+     * 某坐标是否包含某些地图元素
+     * @param view
+     * @param mapEnum
+     * @param i
+     * @param k
+     * @return
+     */
     private boolean contain(TMap view, MapEnum[] mapEnum, int i, int k) {
         for (MapEnum item : mapEnum){
             if(item.name().equals(view.getMap().get(i).get(k))){
@@ -200,5 +219,35 @@ public class MapService {
             yidong ++;
         }
         return nextPos;
+    }
+
+    /**
+     * 获取某元素坦克
+     * @param view
+     * @param tId
+     * @return
+     */
+    public Position getPosition(TMap view, String tId) {
+        for(int r=0;r<view.getRowLen();r++){
+            for(int c=0;c<view.getColLen();c++){
+                if(tId.equals(view.getMap().get(r).get(c))){
+                    return new Position(r,c);
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<Position> listPosition(TMap view,List<Tank> tanks){
+        List<String> tIds = tanks.stream().map(Tank::getTId).collect(Collectors.toList());
+        List<Position> result = new ArrayList<>();
+        for(int r=0;r<view.getRowLen();r++){
+            for(int c=0;c<view.getColLen();c++){
+                if(tIds.contains(view.getMap().get(r).get(c))){
+                    result.add(new Position(r,c));
+                }
+            }
+        }
+        return result;
     }
 }

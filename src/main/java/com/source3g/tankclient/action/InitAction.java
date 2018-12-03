@@ -41,6 +41,9 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             globalValues.setBossTeam(bossTeam);
             globalValues.setEnemyTeam(enemyTeam);
 
+            //会话参数
+            globalValues.setSessionData(params.getSessionData());
+
         } catch (IOException e) {
             e.printStackTrace();
         }

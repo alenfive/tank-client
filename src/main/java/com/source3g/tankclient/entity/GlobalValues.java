@@ -22,4 +22,7 @@ public class GlobalValues {
     public List<Action> resultAction;
     public TeamDetail bossTeam;
     public TeamDetail enemyTeam;
+
+    //会话参数
+    private SessionData sessionData;
 }

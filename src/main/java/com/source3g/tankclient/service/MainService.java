@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class ClientService {
+public class MainService {
 
     @Autowired
     private InitAction initAction;
@@ -28,9 +28,11 @@ public class ClientService {
     @Autowired
     private DefenseAction defenseAction;
     @Autowired
-    private DiedAction diedAction;
+    private LliveAction lliveAction;
     @Autowired
     private AttackEnemyAction attackEnemyAction;
+    @Autowired
+    private RetreatAction retreatAction;
 
     public void init(ClientParam clientParam) {
 
@@ -47,8 +49,8 @@ public class ClientService {
             try{
 
                 //坦克已死亡
-                NodeType diedType = diedAction.process(globalValues,action);
-                if(NodeType.Success.equals(diedType)){
+                NodeType diedType = lliveAction.process(globalValues,action);
+                if(!NodeType.Success.equals(diedType)){
                     continue;
                 }
 
@@ -64,11 +66,17 @@ public class ClientService {
                     continue;
                 }
 
-                //撤退
-                NodeType defenseType = defenseAction.process(globalValues,action);
+                //防御
+                /*NodeType defenseType = defenseAction.process(globalValues,action);
                 if(NodeType.Success.equals(defenseType)){
                     continue;
-                }
+                }*/
+
+                //撤退
+                /*NodeType retreatType = retreatAction.process(globalValues,action);
+                if(NodeType.Success.equals(retreatType)){
+                    continue;
+                }*/
 
                 //攻击敌方坦克
                 NodeType enemyType = attackEnemyAction.process(globalValues,action);

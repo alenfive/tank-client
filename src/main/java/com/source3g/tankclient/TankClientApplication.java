@@ -23,7 +23,7 @@ public class TankClientApplication implements CommandLineRunner{
 	private MapService mapService;
 
 	@Override
-	public void run(String... strings) throws Exception {
+	public void run(String... strings) {
 		TMap tMap = mapService.getMap("32X24");
 		AStar aStar = new AStar(tMap);
 		Position currPos = new Position(4,10);

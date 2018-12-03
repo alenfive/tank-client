@@ -9,12 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ClientParam {
-    private String team;
-    private TMap view;
-    private TeamDetail tA;
-    private TeamDetail tB;
-    private TeamDetail tC;
-    private SessionData sessionData;
-
+public class DiffPosition {
+    private int diff;
+    private Position pos;
+    private Tank tank;
 }

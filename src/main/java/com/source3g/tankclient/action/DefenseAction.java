@@ -2,8 +2,8 @@ package com.source3g.tankclient.action;
 
 import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.MapService;
+import com.source3g.tankclient.service.MoveService;
 import com.source3g.tankclient.utils.AStar;
-import com.source3g.tankclient.utils.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,12 +17,13 @@ import java.util.stream.Collectors;
  * 2、BOSS打完
  * 3、已经胜利
  */
-@SuppressWarnings("Duplicates")
 @Component
 public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
 
     @Autowired
     private MapService mapService;
+    @Autowired
+    private MoveService moveService;
 
     @Override
     public NodeType process(GlobalValues params, Action action) {
@@ -33,7 +34,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
         }
 
         TMap view = params.getView();
-        Position currPos = MapUtils.getPosition(params.getView(),action.getTId());
+        Position currPos = mapService.getPosition(params.getView(),action.getTId());
         Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
         AStar aStar = new AStar(view);
         Position nextPos = null;
@@ -81,19 +82,12 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
             view.getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
 
             //根据坐标，计算方位和步长
-            buildAction(action,currPos,nextPos);
+            moveService.buildAction(action,currPos,nextPos);
         }
 
         return NodeType.Success;
     }
 
-    private void buildAction(Action action, Position currPos, Position nextPos) {
-        int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
-        int colDiff = nextPos.getColIndex()-currPos.getColIndex();
-        action.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
-        action.setLength(Math.abs(rowDiff!=0?rowDiff:colDiff));
-        action.setType(ActionTypeEnum.MOVE);
-    }
 
     /**
      * 锁定队友附近的落脚点
@@ -121,7 +115,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
             if (item.getTId().equals(tank.getTId())){
                 continue;
             }
-            Position itemPos = MapUtils.getPosition(params.getView(),item.getTId());
+            Position itemPos = mapService.getPosition(params.getView(),item.getTId());
             if(itemPos == null){
                 continue;
             }

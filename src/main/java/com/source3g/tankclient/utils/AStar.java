@@ -4,8 +4,7 @@ import com.source3g.tankclient.entity.MapEnum;
 import com.source3g.tankclient.entity.Position;
 import com.source3g.tankclient.entity.TMap;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by Administrator on 9/19/2017.
@@ -20,6 +19,11 @@ public class AStar {
 
     private ArrayList<Position> openList = new ArrayList<>();
     private ArrayList<Position> closeList = new ArrayList<>();
+    private Set<MapEnum> blockList = new HashSet<>(Arrays.asList(MapEnum.M1,MapEnum.M2,MapEnum.M3));
+
+    public void resetBlockList(MapEnum ... arrs){
+        blockList = new HashSet<>(Arrays.asList(arrs));
+    }
 
     public Position findMinFNodeInOpneList() {
         Position tempNode = openList.get(0);
@@ -69,9 +73,7 @@ public class AStar {
 
     public boolean canReach(int rowIndex, int colIndex) {
         if (rowIndex >= 0 && rowIndex < view.getRowLen() && colIndex >= 0 && colIndex < view.getColLen()) {
-            return view.getMap().get(rowIndex).get(colIndex).equals(MapEnum.M1.name()) ||
-                    view.getMap().get(rowIndex).get(colIndex).equals(MapEnum.M2.name()) ||
-                    view.getMap().get(rowIndex).get(colIndex).equals(MapEnum.M3.name());
+            return blockList.contains(MapEnum.valueOf(view.getMap().get(rowIndex).get(colIndex)));
         }
         return false;
     }

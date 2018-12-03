@@ -5,6 +5,7 @@ import com.source3g.tankclient.entity.ClientParam;
 import com.source3g.tankclient.entity.GlobalValues;
 import com.source3g.tankclient.entity.TMap;
 import com.source3g.tankclient.entity.TeamDetail;
+import com.source3g.tankclient.service.MapService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,8 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
 
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private MapService mapService;
 
     @Override
     public NodeType process(ClientParam params, GlobalValues globalValues) {
@@ -33,7 +36,6 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
             TeamDetail bossTeam = objectMapper.readValue(objectMapper.writeValueAsString(params.getTA()), TeamDetail.class);
             TeamDetail enemyTeam = objectMapper.readValue(objectMapper.writeValueAsString(!"tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
-
 
             //深拷贝一份
             globalValues.setView(view);

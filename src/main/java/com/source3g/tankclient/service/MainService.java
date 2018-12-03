@@ -4,10 +4,12 @@ import com.source3g.tankclient.action.*;
 import com.source3g.tankclient.entity.Action;
 import com.source3g.tankclient.entity.ClientParam;
 import com.source3g.tankclient.entity.GlobalValues;
+import com.source3g.tankclient.entity.Position;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MainService {
@@ -28,11 +30,13 @@ public class MainService {
     @Autowired
     private DefenseAction defenseAction;
     @Autowired
-    private LliveAction lliveAction;
+    private LiveAction liveAction;
     @Autowired
     private AttackEnemyAction attackEnemyAction;
     @Autowired
     private RetreatAction retreatAction;
+    @Autowired
+    private MapService mapService;
 
     public void init(ClientParam clientParam) {
 
@@ -45,56 +49,38 @@ public class MainService {
         initAction.process(clientParam,globalValues);
         randomAction.process(globalValues, globalValues.getResultAction());
 
-        for(Action action : globalValues.getResultAction()){
-            try{
+        List<Action> actions = globalValues.getResultAction();
 
-                //坦克已死亡
-                NodeType diedType = lliveAction.process(globalValues,action);
-                if(!NodeType.Success.equals(diedType)){
-                    continue;
-                }
+        //使用复活币
+        liveAction.process(globalValues,actions);
 
-                //捡复活币
-                NodeType glodType = glodPickupAction.process(globalValues,action);
-                if(NodeType.Success.equals(glodType)){
-                    continue;
-                }
 
-                //攻打BOSS
-                NodeType bossType = attackBossAction.process(globalValues,action);
-                if(NodeType.Success.equals(bossType)){
-                    continue;
-                }
+        //捡复活币
+        glodPickupAction.process(globalValues,actions);
 
-                //防御
-                /*NodeType defenseType = defenseAction.process(globalValues,action);
-                if(NodeType.Success.equals(defenseType)){
-                    continue;
-                }*/
 
-                //撤退
-                /*NodeType retreatType = retreatAction.process(globalValues,action);
-                if(NodeType.Success.equals(retreatType)){
-                    continue;
-                }*/
+        actions = actions.stream().filter(item->!item.isUsed()).collect(Collectors.toList());
 
-                //攻击敌方坦克
-                NodeType enemyType = attackEnemyAction.process(globalValues,action);
-                if(NodeType.Success.equals(enemyType)){
-                    continue;
-                }
+        //攻击敌方或者逃跑
+        attackEnemyAction.process(globalValues,actions);
 
-                //扫图
-                NodeType onPatrolType = onPatrolAction.process(globalValues,action);
-                if(NodeType.Success.equals(onPatrolType)){
-                    continue;
-                }
+        //攻打BOSS
+        attackBossAction.process(globalValues,actions);
 
-            }catch (Exception e){
-                e.printStackTrace();
+
+
+
+        //扫图
+        onPatrolAction.process(globalValues,actions);
+
+
+        //更新最后的位置
+        globalValues.getSessionData().getTankPositions().forEach(item->{
+            Position pos = mapService.getPosition(globalValues.getView(),item.getTId());
+            if (pos != null){
+                item.setPosition(pos);
             }
-        }
-
+        });
         return globalValues.getResultAction();
     }
 

@@ -14,7 +14,7 @@ import java.util.List;
  * 巡逻
  */
 @Component
-public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
+public class OnPatrolAction extends AbstractActiion<GlobalValues,List<Action>> {
 
     @Autowired
     private MapService mapService;
@@ -22,35 +22,37 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
     private MoveService moveService;
 
     @Override
-    public NodeType process(GlobalValues params, Action action) {
-        int suffix = Integer.valueOf(action.getTId().substring(1,2));
+    public NodeType process(GlobalValues params, List<Action> actions) {
+
+        actions.stream().filter(item->!item.isUsed()).forEach(action -> {
+            int suffix = Integer.valueOf(action.getTId().substring(1,2));
 
 
-        Position currPos = mapService.getPosition(params.getView(),action.getTId());
+            Position currPos = mapService.getPosition(params.getView(),action.getTId());
 
-        Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
+            Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
 
-        Position nextPos = null;
-        switch (suffix){
-            case 1:nextPos = quick(params,tank,currPos,1);break;
-            case 2:nextPos = quick(params,tank,currPos,1);break;
-            case 3:nextPos = quick(params,tank,currPos,1);break;
-            case 4:nextPos = quick(params,tank,currPos,-1);break;
-            case 5:nextPos = quick(params,tank,currPos,-1);break;
-        }
+            Position nextPos = null;
+            switch (suffix){
+                case 1:nextPos = quick(params,tank,currPos,1);break;
+                case 2:nextPos = quick(params,tank,currPos,1);break;
+                case 3:nextPos = quick(params,tank,currPos,1);break;
+                case 4:nextPos = quick(params,tank,currPos,-1);break;
+                case 5:nextPos = quick(params,tank,currPos,1);break;
+            }
 
-        //获取最大行进路线
-        nextPos = mapService.getMaxNext(tank,currPos,nextPos);
+            //获取最大行进路线
+            nextPos = mapService.getMaxNext(tank,currPos,nextPos);
 
-        //允许下一步，替换地图
-        if(nextPos != null){
-            params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
-            params.getView().getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
+            //允许下一步，替换地图
+            if(nextPos != null){
+                params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
+                params.getView().getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
 
-            //根据坐标，计算方位和步长
-            moveService.buildAction(action,currPos,nextPos);
-        }
-
+                //根据坐标，计算方位和步长
+                moveService.buildAction(action,currPos,nextPos);
+            }
+        });
         return NodeType.Success;
     }
     /**

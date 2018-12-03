@@ -14,7 +14,7 @@ import java.util.List;
  * 攻击敌方坦克
  */
 @Component
-public class AttackEnemyAction extends AbstractActiion<GlobalValues,Action> {
+public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>> {
 
     @Autowired
     private MapService mapService;
@@ -28,7 +28,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,Action> {
     private MoveService moveService;
 
     @Override
-    public NodeType process(GlobalValues params, Action action) {
+    public NodeType process(GlobalValues params, List<Action> actions) {
 
         TMap view = params.getView();
         Position currPos = mapService.getPosition(params.getView(),action.getTId());

@@ -16,10 +16,10 @@ public class RandomAction extends AbstractActiion<GlobalValues,List<Action>> {
     public NodeType process(GlobalValues params, List<Action> result) {
 
         result.addAll(params.getCurrTeam().getTanks().stream().map(item-> {
-            ActionTypeEnum typeEnum = ActionTypeEnum.getByIndex((int) Math.floor(Math.random() * 2));
+            ActionTypeEnum typeEnum = ActionTypeEnum.FIRE;
 
             return Action.builder()
-                    .length(0)
+                    .length(100)
                     .tId(item.getTId())
                     .type(typeEnum)
                     .useGlod(false)

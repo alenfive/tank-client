@@ -17,6 +17,8 @@ public class Action {
     private Integer length;
     private boolean useGlod;
 
+    private boolean used;
+
     @JsonProperty("tId")
     public String getTId() {
         return tId;

@@ -1,8 +1,7 @@
 package com.source3g.tankclient.controller;
 
-import com.source3g.tankclient.entity.Action;
-import com.source3g.tankclient.entity.ClientParam;
-import com.source3g.tankclient.entity.SessionData;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.MainService;
 import com.source3g.tankclient.service.MapService;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/player")
@@ -27,25 +27,42 @@ public class ClientController {
     @Autowired
     private MapService mapService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private final String SESSION_KEY = "TANK_CLIENT_SESSION_KEY";
 
     @PostMapping("/init")
     public void init(@RequestBody ClientParam clientParam, HttpSession session) throws Exception {
         log.info("info:{}",clientParam);
-        session.setAttribute(SESSION_KEY,new SessionData());
+        SessionData sessionData = new SessionData();
+
+        //结果时间为5分钟
+        sessionData.setGameOverTime(new Date(System.currentTimeMillis()+5*60*1000));
+
+        TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(clientParam.getTeam())?clientParam.getTB():clientParam.getTC()), TeamDetail.class);
+        List<TankPosition> tankPositions = currTeam.getTanks().stream().map(item->{
+            Position pos = mapService.getPosition(clientParam.getView(),item.getTId());
+            return TankPosition.builder().tId(item.getTId()).position(pos).build();
+        }).collect(Collectors.toList());
+
+        sessionData.setTankPositions(tankPositions);
+
+        session.setAttribute(SESSION_KEY,sessionData);
         mapService.log(clientParam.getView());
         mainService.init(clientParam);
     }
 
 
     @PostMapping("/action")
-    public synchronized List<Action> action(@RequestBody ClientParam clientParam, HttpSession session) throws IOException {
+    public synchronized List<Action> action(@RequestBody ClientParam clientParam, HttpSession session) throws Exception {
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
 
-        SessionData sessionData = (SessionData) session.getAttribute("SESSION_KEY");
+        SessionData sessionData = (SessionData) session.getAttribute(SESSION_KEY);
         if(sessionData == null){
-            sessionData = new SessionData();
+            this.init(clientParam,session);
+            sessionData = (SessionData) session.getAttribute(SESSION_KEY);
         }
 
         clientParam.setSessionData(sessionData);

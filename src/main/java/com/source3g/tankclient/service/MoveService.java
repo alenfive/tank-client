@@ -1,7 +1,9 @@
 package com.source3g.tankclient.service;
 
-import com.source3g.tankclient.entity.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.source3g.tankclient.entity.Action;
+import com.source3g.tankclient.entity.ActionTypeEnum;
+import com.source3g.tankclient.entity.DirectionEnum;
+import com.source3g.tankclient.entity.Position;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,6 +18,7 @@ public class MoveService {
         action.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
         action.setLength(Math.abs(rowDiff!=0?rowDiff:colDiff));
         action.setType(ActionTypeEnum.MOVE);
+        action.setUsed(true);
     }
 
 }

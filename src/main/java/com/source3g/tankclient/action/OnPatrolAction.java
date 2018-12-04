@@ -24,6 +24,10 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
     @Override
     public NodeType process(GlobalValues params, Action action) {
 
+        if(action.isUsed()){
+            return NodeType.Failure;
+        }
+
         int suffix = Integer.valueOf(action.getTId().substring(1,2));
 
 

@@ -18,7 +18,7 @@ public class AttackService {
     private MapService mapService;
 
     //默认攻击顺序
-    private final List<String> tIdSorted = Arrays.asList("C1","B1","C3","B3","C4","B4","C5","B5","C2","B2");
+    private final List<String> tIdSorted = Arrays.asList("C1","B1","C3","B3","C4","B4","C5","B5","C2","B2","A1");
 
     /**
      * 返回可攻击敌方坐标
@@ -56,7 +56,7 @@ public class AttackService {
         if(!oneAttacks.isEmpty()){
             for (String tId : tIdSorted){
                 for (TankPosition tp : oneAttacks){
-                    if (tId.equals(tp)){
+                    if (tId.equals(tp.getTId())){
                         return tp.getPosition();
                     }
                 }
@@ -65,7 +65,7 @@ public class AttackService {
             //第二优先-攻击顺序
             for (String tId : tIdSorted){
                 for (TankPosition tp : ablePos){
-                    if (tId.equals(tp)){
+                    if (tId.equals(tp.getTId())){
                         return tp.getPosition();
                     }
                 }
@@ -98,6 +98,7 @@ public class AttackService {
         action.setDirection(direct);
         action.setType(ActionTypeEnum.FIRE);
         action.setLength(diff);
+        action.setUsed(true);
 
         //打死BOSS后地图上移除
         if(targetTank.getShengyushengming()-currTank.getGongji() <=0){

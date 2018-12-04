@@ -56,7 +56,8 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,Action> {
         }
 
         //获得集结点
-        Position massPos = formationService.getMass(params);
+        //Position massPos = formationService.getMass(params);
+        Position massPos = positions.get(0);
         if(massPos.getRowIndex() == currPos.getRowIndex() && massPos.getColIndex() == currPos.getColIndex()){
             return NodeType.Failure;
         }

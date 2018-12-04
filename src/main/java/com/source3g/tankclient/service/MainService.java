@@ -1,14 +1,12 @@
 package com.source3g.tankclient.service;
 
 import com.source3g.tankclient.action.*;
-import com.source3g.tankclient.entity.Action;
-import com.source3g.tankclient.entity.ClientParam;
-import com.source3g.tankclient.entity.GlobalValues;
-import com.source3g.tankclient.entity.Position;
+import com.source3g.tankclient.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MainService {
@@ -49,14 +47,30 @@ public class MainService {
         randomAction.process(globalValues, globalValues.getResultAction());
         liveAction.process(globalValues,globalValues.getResultAction());
 
+        //过淲无生命值的操作
+        List<Action> actions = globalValues.getResultAction().stream().filter(item->{
+            for(Tank tank : globalValues.getCurrTeam().getTanks()){
+                if(tank.getTId().equals(item.getTId()) && tank.getShengyushengming()>0){
+                    return true;
+                }
+            }
+            return false;
+        }).collect(Collectors.toList());
 
-        for(Action action : globalValues.getResultAction()){
+        for(Action action : actions){
             try{
+
                 //捡复活币
                 NodeType glodType = glodPickupAction.process(globalValues,action);
                 if(NodeType.Success.equals(glodType)){
                     continue;
                 }
+
+                //撤退
+                /*NodeType retreatType = retreatAction.process(globalValues,action);
+                if(NodeType.Success.equals(retreatType)){
+                    continue;
+                }*/
 
                 //攻打BOSS
                 NodeType bossType = attackBossAction.process(globalValues,action);

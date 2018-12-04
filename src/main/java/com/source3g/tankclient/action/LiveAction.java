@@ -24,7 +24,7 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
     public NodeType process(GlobalValues params, List<Action> actions) {
 
         TMap view = params.getView();
-        long seconds = (System.currentTimeMillis()-params.getSessionData().getGameOverTime().getTime())/1000;
+        long seconds = (params.getSessionData().getGameOverTime().getTime()-System.currentTimeMillis())/1000;
 
         //剩余生命差值排序
         List<Tank> loseMingSort = params.getCurrTeam().getTanks().stream().sorted((a,b)->{
@@ -54,7 +54,7 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
                 int diffCurr = ableAttackTank.getShengyushengming()/tank.getGongji();
                 int diffEnemy = tank.getShengming()/ableAttackTank.getGongji();
 
-                if((diffCurr-diffEnemy)>1){
+                if(diffCurr <= diffEnemy){
                     useGlod(params,action);
                 }
             }

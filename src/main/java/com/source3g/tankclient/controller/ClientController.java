@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpSession;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,10 +31,11 @@ public class ClientController {
 
     private final String SESSION_KEY = "TANK_CLIENT_SESSION_KEY";
 
+    private static SessionData sessionData = new SessionData();
+
     @PostMapping("/init")
-    public void init(@RequestBody ClientParam clientParam, HttpSession session) throws Exception {
+    public void init(@RequestBody ClientParam clientParam) throws Exception {
         log.info("info:{}",clientParam);
-        SessionData sessionData = new SessionData();
 
         //结果时间为5分钟
         sessionData.setGameOverTime(new Date(System.currentTimeMillis()+5*60*1000));
@@ -48,21 +48,18 @@ public class ClientController {
 
         sessionData.setTankPositions(tankPositions);
 
-        session.setAttribute(SESSION_KEY,sessionData);
         mapService.log(clientParam.getView());
         mainService.init(clientParam);
     }
 
 
     @PostMapping("/action")
-    public synchronized List<Action> action(@RequestBody ClientParam clientParam, HttpSession session) throws Exception {
+    public synchronized List<Action> action(@RequestBody ClientParam clientParam) throws Exception {
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
 
-        SessionData sessionData = (SessionData) session.getAttribute(SESSION_KEY);
-        if(sessionData == null){
-            this.init(clientParam,session);
-            sessionData = (SessionData) session.getAttribute(SESSION_KEY);
+        if(sessionData.getGameOverTime() == null){
+            this.init(clientParam);
         }
 
         clientParam.setSessionData(sessionData);

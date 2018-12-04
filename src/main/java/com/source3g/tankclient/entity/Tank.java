@@ -19,8 +19,6 @@ public class Tank {
     private Integer yidong;
     private Integer shecheng;
     private Integer shiye;
-    private boolean mingzhong;
-    private DirectionEnum direction;
 
     public Integer getShengyushengming() {
         if(shengyushengming == null){

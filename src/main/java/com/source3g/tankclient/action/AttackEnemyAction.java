@@ -14,7 +14,7 @@ import java.util.List;
  * 攻击敌方坦克
  */
 @Component
-public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>> {
+public class AttackEnemyAction extends AbstractActiion<GlobalValues,Action> {
 
     @Autowired
     private MapService mapService;
@@ -28,7 +28,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
     private MoveService moveService;
 
     @Override
-    public NodeType process(GlobalValues params, List<Action> actions) {
+    public NodeType process(GlobalValues params, Action action) {
 
         TMap view = params.getView();
         Position currPos = mapService.getPosition(params.getView(),action.getTId());
@@ -44,8 +44,8 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         //集结
         params.getSessionData().setMass(true);
 
-        //范围内可攻击的坦克
-        Position targetPos = attackService.ableAttack(tank,currPos,positions);
+        //可攻击的坦克
+        Position targetPos = attackService.ableAttack(view, tank,currPos,positions,params.getEnemyTeam());
 
         //攻击范围内存在敌方
         if(targetPos != null){
@@ -56,13 +56,13 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         }
 
         //获得集结点
-        Position massPosition = formationService.getMass(params);
-        if(massPosition.getRowIndex() == currPos.getRowIndex() && massPosition.getColIndex() == currPos.getColIndex()){
+        Position massPos = formationService.getMass(params);
+        if(massPos.getRowIndex() == currPos.getRowIndex() && massPos.getColIndex() == currPos.getColIndex()){
             return NodeType.Failure;
         }
 
         //制定路线
-        Position nextPos = formationService.random(params,tank,currPos,massPosition);
+        Position nextPos = formationService.random(params,tank,currPos,massPos);
         if(nextPos == null){
             return NodeType.Failure;
         }

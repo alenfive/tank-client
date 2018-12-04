@@ -6,7 +6,6 @@ import com.source3g.tankclient.service.MapService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,12 +20,10 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
     @Autowired
     private AttackService attackService;
 
-    private List<MapEnum> mainAttack = Arrays.asList(MapEnum.B1,MapEnum.B2,MapEnum.B5,MapEnum.C1,MapEnum.C2,MapEnum.C5);
-
     @Override
     public NodeType process(GlobalValues params, List<Action> actions) {
 
-
+        TMap view = params.getView();
         long seconds = (System.currentTimeMillis()-params.getSessionData().getGameOverTime().getTime())/1000;
 
         //剩余生命差值排序
@@ -47,9 +44,10 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
             int endR = currPos.getRowIndex()+tank.getShecheng();
             int startC = currPos.getColIndex()-tank.getShecheng();
             int endC = currPos.getColIndex()+tank.getShecheng();
+
             //射程范围内可攻击的坐标
             List<Position> ableAttackPos = mapService.findByMapEnum(params.getView(),startR,endR,startC,endC,enemyEnum.toArray(new MapEnum[enemyEnum.size()]));
-            Position ableAttack = attackService.ableAttack(tank,currTankPos.getPosition(),ableAttackPos);
+            Position ableAttack = attackService.ableAttack(view, tank,currTankPos.getPosition(),ableAttackPos,params.getEnemyTeam());
             if(ableAttack != null){
                 String ableAttackTankId = params.getView().getMap().get(ableAttack.getRowIndex()).get(ableAttack.getColIndex());
                 Tank ableAttackTank = params.getEnemyTeam().getTanks().stream().filter(item->item.getTId().equals(ableAttackTankId)).findFirst().orElse(null);

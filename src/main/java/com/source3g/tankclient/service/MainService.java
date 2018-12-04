@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class MainService {
@@ -48,30 +47,39 @@ public class MainService {
 
         initAction.process(clientParam,globalValues);
         randomAction.process(globalValues, globalValues.getResultAction());
-
-        List<Action> actions = globalValues.getResultAction();
-
-        //使用复活币
-        liveAction.process(globalValues,actions);
+        liveAction.process(globalValues,globalValues.getResultAction());
 
 
-        //捡复活币
-        glodPickupAction.process(globalValues,actions);
+        for(Action action : globalValues.getResultAction()){
+            try{
+                //捡复活币
+                NodeType glodType = glodPickupAction.process(globalValues,action);
+                if(NodeType.Success.equals(glodType)){
+                    continue;
+                }
 
+                //攻打BOSS
+                NodeType bossType = attackBossAction.process(globalValues,action);
+                if(NodeType.Success.equals(bossType)){
+                    continue;
+                }
 
-        actions = actions.stream().filter(item->!item.isUsed()).collect(Collectors.toList());
+                //攻击敌方坦克
+                NodeType attackEnemy = attackEnemyAction.process(globalValues,action);
+                if(NodeType.Success.equals(attackEnemy)){
+                    continue;
+                }
 
-        //攻击敌方或者逃跑
-        attackEnemyAction.process(globalValues,actions);
+                //扫图
+                NodeType onPatrolType = onPatrolAction.process(globalValues,action);
+                if(NodeType.Success.equals(onPatrolType)){
+                    continue;
+                }
 
-        //攻打BOSS
-        attackBossAction.process(globalValues,actions);
-
-
-
-
-        //扫图
-        onPatrolAction.process(globalValues,actions);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
 
 
         //更新最后的位置

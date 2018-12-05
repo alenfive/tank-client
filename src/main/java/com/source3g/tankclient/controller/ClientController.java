@@ -6,6 +6,7 @@ import com.source3g.tankclient.service.MainService;
 import com.source3g.tankclient.service.MapService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +43,9 @@ public class ClientController {
         TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(clientParam.getTeam())?clientParam.getTB():clientParam.getTC()), TeamDetail.class);
         List<TankPosition> tankPositions = currTeam.getTanks().stream().map(item->{
             Position pos = mapService.getPosition(clientParam.getView(),item.getTId());
+
+            Assert.notNull(pos,"坦克信息不全，重新开始游戏");
+
             return TankPosition.builder().tId(item.getTId()).position(pos).build();
         }).collect(Collectors.toList());
 
@@ -69,14 +73,14 @@ public class ClientController {
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
 
-        if(sessionData.getGameOverTime() == null){
+        if(sessionData == null || sessionData.getGameOverTime() == null){
             this.init(clientParam);
         }
         sessionData.getLeader().setDirection(null);
         clientParam.setSessionData(sessionData);
         List<Action> actions = mainService.action(clientParam);
 
-        actions.stream().filter(item->item.getLength()>0).forEach(item-> System.out.println(item.getTId()+":"+item.getLength()+":"+item.getDirection()));
+        actions.stream().filter(item->item.getLength()>0).forEach(item-> System.out.println(item.getTId()+":"+item.getLength()+":"+item.getDirection()+":"+item.getType()));
         log.info("actions:{}",actions);
         return actions;
     }

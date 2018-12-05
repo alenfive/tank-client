@@ -41,7 +41,7 @@ public class RetreatAction extends AbstractActiion<GlobalValues,Action> {
             return NodeType.Failure;
         }
 
-        moveService.buildAction(action,currPos,nextPos);
+        moveService.buildAction(params,action,currPos,nextPos);
 
         return NodeType.Success;
     }
@@ -131,7 +131,7 @@ public class RetreatAction extends AbstractActiion<GlobalValues,Action> {
             if(itemPos == null){
                 continue;
             }
-            aStar.appendBlockList(MapEnum.M1,MapEnum.M2,MapEnum.M3,MapEnum.valueOf(item.getTId()));
+            aStar.appendBlockList(item.getTId());
             int diff = aStar.countStep(currPos,itemPos);
 
             if (diffPosition.getPos() != null && diff > diffPosition.getDiff()){

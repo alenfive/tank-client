@@ -22,6 +22,10 @@ public class GlobalValues {
     public TeamDetail bossTeam;
     public TeamDetail enemyTeam;
 
+    private List<String> currTeamTId;
+    private List<String> enemyTeamTId;
+    private int sortNo;
+
     //会话参数
     private SessionData sessionData;
 

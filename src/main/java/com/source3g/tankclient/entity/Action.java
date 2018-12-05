@@ -17,6 +17,8 @@ public class Action {
     private Integer length;
     private boolean useGlod;
     private Tank tank;
+    private Position target;
+    private int sort;
 
     private boolean used;
 

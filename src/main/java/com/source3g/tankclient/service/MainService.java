@@ -32,6 +32,8 @@ public class MainService {
     private RetreatAction retreatAction;
     @Autowired
     private MapService mapService;
+    @Autowired
+    private AttackService attackService;
 
     public void init(ClientParam clientParam) {
 
@@ -48,19 +50,18 @@ public class MainService {
         List<Action> actions = globalValues.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 
         //是否有复活币
-        for (Action action : actions){
-            glodPickupAction.process(globalValues,action);
-        }
+        glodPickupAction.process(globalValues,actions);
 
-        //是否有敌人
-        List<Position> enemyPos = mapService.listPosition(globalValues.getView(),globalValues.getEnemyTeam().getTanks());
+        //有敌人
+        attackEnemyAction.process(globalValues,actions);
 
-        if(!enemyPos.isEmpty()){ //攻击或者撤退
-
-        }
+        //攻击BOSS
+        attackBossAction.process(globalValues,actions);
 
         //扫图
         onPatrolAction.process(globalValues,actions);
+
+        List<Action> sortedActions = globalValues.getResultAction().stream().sorted(Comparator.comparing(Action::getSort)).collect(Collectors.toList());
 
         //更新最后的位置
         globalValues.getSessionData().getTankPositions().forEach(item->{
@@ -69,7 +70,7 @@ public class MainService {
                 item.setPosition(pos);
             }
         });
-        return globalValues.getResultAction();
+        return sortedActions;
     }
 
 }

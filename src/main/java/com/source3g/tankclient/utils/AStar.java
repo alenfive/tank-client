@@ -19,10 +19,13 @@ public class AStar {
 
     private ArrayList<Position> openList = new ArrayList<>();
     private ArrayList<Position> closeList = new ArrayList<>();
-    private Set<MapEnum> blockList = new HashSet<>(Arrays.asList(MapEnum.M1,MapEnum.M2,MapEnum.M3));
+    private Set<String> blockList = new HashSet<>(Arrays.asList(MapEnum.M1.name(),MapEnum.M2.name(),MapEnum.M3.name()));
 
-    public void appendBlockList(MapEnum ... arrs){
+    public void appendBlockList(String ... arrs){
         blockList.addAll(new HashSet<>(Arrays.asList(arrs)));
+    }
+    public void appendBlockList(List<String> blocks){
+        blockList.addAll(blocks);
     }
 
     public Position findMinFNodeInOpneList() {
@@ -38,7 +41,7 @@ public class AStar {
     public void clear(){
         openList = new ArrayList<>();
         closeList = new ArrayList<>();
-        blockList = new HashSet<>(Arrays.asList(MapEnum.M1,MapEnum.M2,MapEnum.M3));
+        blockList = new HashSet<>(Arrays.asList(MapEnum.M1.name(),MapEnum.M2.name(),MapEnum.M3.name()));
     }
 
     public AStar(TMap view){
@@ -74,7 +77,7 @@ public class AStar {
 
     public boolean canReach(int rowIndex, int colIndex) {
         if (rowIndex >= 0 && rowIndex < view.getRowLen() && colIndex >= 0 && colIndex < view.getColLen()) {
-            return blockList.contains(MapEnum.valueOf(view.getMap().get(rowIndex).get(colIndex)));
+            return blockList.contains(view.getMap().get(rowIndex).get(colIndex));
         }
         return false;
     }

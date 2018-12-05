@@ -1,14 +1,12 @@
 package com.source3g.tankclient.service;
 
-import com.source3g.tankclient.entity.MapEnum;
-import com.source3g.tankclient.entity.Position;
-import com.source3g.tankclient.entity.TMap;
-import com.source3g.tankclient.entity.Tank;
+import com.source3g.tankclient.entity.*;
+import com.source3g.tankclient.utils.AStar;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -176,17 +174,61 @@ public class MapService {
         return result;
     }
 
-    public void buildPosition(TMap view,Position pos){
+    public void buildPosition(GlobalValues params, Position pos){
         if (pos == null)return;
+        TMap view = params.getView();
         int rowIndex = pos.getRowIndex()<=0?0:pos.getRowIndex();
         rowIndex = rowIndex>view.getRowLen()-1?rowIndex-1:rowIndex;
         int colIndex = pos.getColIndex()<=0?0:pos.getColIndex();
         colIndex = colIndex>view.getColLen()-1?colIndex-1:colIndex;
+
         pos.setRowIndex(rowIndex);
         pos.setColIndex(colIndex);
     }
 
     public boolean isBlock(String mId) {
         return !blocks.contains(mId);
+    }
+
+    /**
+     * 返回附近空白点
+     * @param targetPos
+     */
+    public void buildBlank(GlobalValues params, Position targetPos) {
+        String mId = params.getView().getMap().get(targetPos.getRowIndex()).get(targetPos.getColIndex());
+        if(!isBlock(mId)){
+            return;
+        }
+        List<Position> ablePos = Arrays.asList(
+                new Position(targetPos.getRowIndex()-1,targetPos.getColIndex()-1),
+                new Position(targetPos.getRowIndex()-1,targetPos.getColIndex()+1),
+                new Position(targetPos.getRowIndex()+1,targetPos.getColIndex()+1),
+                new Position(targetPos.getRowIndex()+1,targetPos.getColIndex()-1),
+                new Position(targetPos.getRowIndex()-1,targetPos.getColIndex()),
+                new Position(targetPos.getRowIndex(),targetPos.getColIndex()+1),
+                new Position(targetPos.getRowIndex()+1,targetPos.getColIndex()),
+                new Position(targetPos.getRowIndex(),targetPos.getColIndex()-1)
+        );
+
+        ablePos.forEach(item->buildPosition(params,item));
+        ablePos = ablePos.stream().filter(item->{
+            String itemMId = params.getView().get(item.getRowIndex(),item.getColIndex());
+            return !this.isBlock(itemMId);
+        }).collect(Collectors.toList());
+
+        Position currPos = params.getSessionData().getLeader().getPos();
+
+        if(ablePos.isEmpty())return;
+
+        AStar aStar = new AStar(params.getView());
+        DiffPosition minDiffPos = ablePos.stream().map(item->{
+            DiffPosition diffPosition = new DiffPosition();
+            diffPosition.setPos(item);
+            diffPosition.setDiff(aStar.countStep(currPos,item));
+            return diffPosition;
+        }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+
+        targetPos.setRowIndex(minDiffPos.getPos().getRowIndex());
+        targetPos.setColIndex(minDiffPos.getPos().getColIndex());
     }
 }

@@ -21,6 +21,76 @@ public class AttackService {
     private final List<String> tIdSorted = Arrays.asList("C1","B1","C3","B3","C4","B4","C5","B5","C2","B2","A1");
 
     /**
+     * 被攻击坦克
+     * @param params
+     * @param currTank
+     * @param enemyTanks
+     * @return
+     */
+    public List<DiffPosition> beAttacked(GlobalValues params,Tank currTank,List<Tank> enemyTanks){
+
+        List<DiffPosition> result = new ArrayList<>();
+        Position currPos = mapService.getPosition(params.getView(),currTank.getTId());
+        if (currPos == null)return result;
+
+
+        for(Tank enemyTank : enemyTanks){
+
+            Position enemyPos = mapService.getPosition(params.getView(),enemyTank.getTId());
+            if(enemyPos == null)continue;
+
+            int diff = Math.abs(enemyPos.getRowIndex()-currPos.getRowIndex())+Math.abs(enemyPos.getColIndex()-currPos.getColIndex());
+            boolean ableAttack = (currPos.getRowIndex()==enemyPos.getRowIndex() || currPos.getColIndex() == enemyPos.getColIndex()) && diff<=enemyTank.getShecheng();
+            if(ableAttack){
+                result.add(DiffPosition.builder()
+                        .pos(enemyPos)
+                        .tank(enemyTank)
+                        .diff(diff)
+                        .build());
+            }
+
+        }
+        return result;
+    }
+
+    /**
+     * 是否会被攻击
+     * @param view
+     * @param currTank
+     * @param enemyTank
+     * @return
+     */
+    public boolean isAbeAttacked(TMap view, Tank currTank, Tank enemyTank){
+        Position currPos = mapService.getPosition(view,currTank.getTId());
+        Position enemyPos = mapService.getPosition(view,enemyTank.getTId());
+        if(enemyPos == null || currPos == null)return false;
+        int diff = Math.abs(enemyPos.getRowIndex()-currPos.getRowIndex())+Math.abs(enemyPos.getColIndex()-currPos.getColIndex());
+        return (currPos.getRowIndex()==enemyPos.getRowIndex() || currPos.getColIndex() == enemyPos.getColIndex()) && diff<=enemyTank.getShecheng();
+    }
+
+    /**
+     * 是否会被攻击
+     * @param view
+     * @param currPos
+     * @param enemyTanks
+     * @return
+     */
+    public boolean isAbeAttacked(TMap view, Position currPos, List<Tank> enemyTanks){
+
+        for(Tank enemyTank : enemyTanks){
+            Position enemyPos = mapService.getPosition(view,enemyTank.getTId());
+            if(enemyPos == null || currPos == null)return false;
+            int diff = Math.abs(enemyPos.getRowIndex()-currPos.getRowIndex())+Math.abs(enemyPos.getColIndex()-currPos.getColIndex());
+            boolean able = (currPos.getRowIndex()==enemyPos.getRowIndex() || currPos.getColIndex() == enemyPos.getColIndex()) && diff<=enemyTank.getShecheng();
+            if (able){
+                return  true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 返回可攻击敌方坐标
      *
      * @param view
@@ -29,7 +99,7 @@ public class AttackService {
      * @param targetPosList
      * @return
      */
-    public Position ableAttack(TMap view, Tank currTank, Position currPos, List<Position> targetPosList,TeamDetail enemyTanks) {
+    public Position ableAttackTop(TMap view, Tank currTank, Position currPos, List<Position> targetPosList, TeamDetail enemyTanks) {
 
         List<TankPosition> ablePos = new ArrayList<>();
         for(Position targetPos : targetPosList){

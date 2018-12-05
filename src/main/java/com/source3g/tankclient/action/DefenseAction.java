@@ -50,7 +50,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
                 aStar.clear();
                 nextPos = aStar.findPath(currPos,blankPos);
 
-                return executeMove(view,tank,action,currPos,nextPos);
+                return executeMove(params,view,tank,action,currPos,nextPos);
             }
         }
 
@@ -58,7 +58,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
         Position targetPos = findDefensePosition(view,tank,scope);
         aStar.clear();
         nextPos = aStar.findPath(currPos,targetPos);
-        return executeMove(view,tank,action,currPos,nextPos);
+        return executeMove(params,view,tank,action,currPos,nextPos);
     }
 
     /**
@@ -73,7 +73,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
         return findRoundBlank(view,pos,scope);
     }
 
-    private NodeType executeMove(TMap view, Tank tank,Action action, Position currPos, Position nextPos) {
+    private NodeType executeMove(GlobalValues params,TMap view, Tank tank,Action action, Position currPos, Position nextPos) {
         nextPos = mapService.getMaxNext(tank,currPos,nextPos);
 
         //允许下一步，替换地图
@@ -82,7 +82,7 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
             view.getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
 
             //根据坐标，计算方位和步长
-            moveService.buildAction(action,currPos,nextPos);
+            moveService.buildAction(params,action,currPos,nextPos);
         }
 
         return NodeType.Success;

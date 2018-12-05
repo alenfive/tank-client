@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +33,8 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
             TeamDetail bossTeam = objectMapper.readValue(objectMapper.writeValueAsString(params.getTA()), TeamDetail.class);
             TeamDetail enemyTeam = objectMapper.readValue(objectMapper.writeValueAsString(!"tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
+            List<String> currTeamTId = currTeam.getTanks().stream().map(Tank::getTId).collect(Collectors.toList());
+            List<String> enemyTeamTId = enemyTeam.getTanks().stream().map(Tank::getTId).collect(Collectors.toList());
 
             List<Action> actions = currTeam.getTanks().stream().map(item-> {
                 ActionTypeEnum typeEnum = ActionTypeEnum.FIRE;
@@ -52,6 +53,9 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             globalValues.setCurrTeam(currTeam);
             globalValues.setBossTeam(bossTeam);
             globalValues.setEnemyTeam(enemyTeam);
+            globalValues.setCurrTeamTId(currTeamTId);
+            globalValues.setEnemyTeamTId(currTeamTId);
+            globalValues.setSortNo(0);
 
             //会话参数
             globalValues.setSessionData(params.getSessionData());

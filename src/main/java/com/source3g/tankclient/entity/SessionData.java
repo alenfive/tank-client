@@ -21,4 +21,7 @@ public class SessionData {
 
     //坦克最后的移动位置
     private List<TankPosition> tankPositions;
+
+    //虚拟leader
+    private Leader leader;
 }

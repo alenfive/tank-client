@@ -29,13 +29,12 @@ public class ClientController {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private final String SESSION_KEY = "TANK_CLIENT_SESSION_KEY";
-
-    private static SessionData sessionData = new SessionData();
+    private static SessionData sessionData;
 
     @PostMapping("/init")
     public void init(@RequestBody ClientParam clientParam) throws Exception {
         log.info("info:{}",clientParam);
+        sessionData = new SessionData();
 
         //结果时间为5分钟
         sessionData.setGameOverTime(new Date(System.currentTimeMillis()+5*60*1000));
@@ -46,10 +45,22 @@ public class ClientController {
             return TankPosition.builder().tId(item.getTId()).position(pos).build();
         }).collect(Collectors.toList());
 
+        Position leaderPos = buildLeaderPos(clientParam.getView(),currTeam);
+        sessionData.setLeader(Leader.builder().pos(leaderPos).build());
         sessionData.setTankPositions(tankPositions);
 
         mapService.log(clientParam.getView());
         mainService.init(clientParam);
+    }
+
+    private Position buildLeaderPos(TMap view,TeamDetail currTeam) {
+        for(Tank tank : currTeam.getTanks()){
+            int suffix = Integer.valueOf(tank.getTId().substring(1,2));
+            if(suffix == 2){
+                return mapService.getPosition(view,tank.getTId());
+            }
+        }
+        return null;
     }
 
 
@@ -61,7 +72,7 @@ public class ClientController {
         if(sessionData.getGameOverTime() == null){
             this.init(clientParam);
         }
-
+        sessionData.getLeader().setDirection(null);
         clientParam.setSessionData(sessionData);
         List<Action> actions = mainService.action(clientParam);
 

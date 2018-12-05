@@ -1,16 +1,15 @@
 package com.source3g.tankclient.action;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.source3g.tankclient.entity.ClientParam;
-import com.source3g.tankclient.entity.GlobalValues;
-import com.source3g.tankclient.entity.TMap;
-import com.source3g.tankclient.entity.TeamDetail;
+import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.MapService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 初始化
@@ -29,7 +28,6 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
         globalValues.setClientParam(params);
 
         String teamId = params.getTeam();
-        globalValues.setResultAction(new ArrayList<>());
         try {
 
             TMap view = objectMapper.readValue(objectMapper.writeValueAsString(params.getView()), TMap.class);
@@ -37,7 +35,19 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             TeamDetail bossTeam = objectMapper.readValue(objectMapper.writeValueAsString(params.getTA()), TeamDetail.class);
             TeamDetail enemyTeam = objectMapper.readValue(objectMapper.writeValueAsString(!"tB".equals(teamId)?params.getTB():params.getTC()), TeamDetail.class);
 
+            List<Action> actions = currTeam.getTanks().stream().map(item-> {
+                ActionTypeEnum typeEnum = ActionTypeEnum.FIRE;
+                return Action.builder()
+                        .length(100)
+                        .tId(item.getTId())
+                        .type(typeEnum)
+                        .useGlod(false)
+                        .tank(item)
+                        .direction(DirectionEnum.getByIndex((int) Math.floor(Math.random()*4))).build();
+            }).collect(Collectors.toList());
+
             //深拷贝一份
+            globalValues.setResultAction(actions);
             globalValues.setView(view);
             globalValues.setCurrTeam(currTeam);
             globalValues.setBossTeam(bossTeam);

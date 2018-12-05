@@ -14,7 +14,7 @@ import java.util.List;
  * 巡逻
  */
 @Component
-public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
+public class OnPatrolAction extends AbstractActiion<GlobalValues,List<Action>> {
 
     @Autowired
     private MapService mapService;
@@ -22,18 +22,109 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
     private MoveService moveService;
 
     @Override
-    public NodeType process(GlobalValues params, Action action) {
+    public NodeType process(GlobalValues params, List<Action> actions) {
 
-        if(action.isUsed()){
+        if(params.getSessionData().getLeader().getDirection() == null){
+            Position leaderPos = params.getSessionData().getLeader().getPos();
+            int sourceRowIndex = leaderPos.getRowIndex();
+            int sourceColIndex = leaderPos.getColIndex();
+            Position targetPos = buildCenterBlank(params);
+            AStar aStar = new AStar(params.getView());
+            aStar.findPath(leaderPos,targetPos);
+
+            if(leaderPos != null && leaderPos.getParent() != null){
+                Position nextPos = leaderPos.getParent();
+                moveService.buildLeaderAction(params.getSessionData().getLeader(),leaderPos,nextPos);
+
+                //判断移动后队友是否能跟上，不能跟上就不动
+                boolean flag = true;
+                for(Action action : actions){
+                    int suffix = Integer.valueOf(action.getTId().substring(1,2));
+
+                    Position itemTagetPos = null;
+                    switch (suffix){
+                        case 1:itemTagetPos = byLeader1(params);break;
+                        case 2:itemTagetPos = byLeader2(params);break;
+                        case 3:itemTagetPos = params.getSessionData().isMass()?byLeader3(params):null;break;
+                        case 4:itemTagetPos = params.getSessionData().isMass()?byLeader4(params):null;break;
+                        case 5:itemTagetPos = byLeader5(params);break;
+                    }
+                    mapService.buildPosition(params.getView(),itemTagetPos);
+                    if(itemTagetPos == null || mapService.isBlock(params.getView().getMap().get(itemTagetPos.getRowIndex()).get(itemTagetPos.getColIndex()))){
+                        continue;
+                    }
+                    Position itemCurrPos = mapService.getPosition(params.getView(),action.getTId());
+                    aStar.clear();
+                    String targetMId = params.getView().get(itemTagetPos.getRowIndex(),itemTagetPos.getColIndex());
+                    aStar.appendBlockList(MapEnum.valueOf(targetMId));
+                    Integer step = aStar.countStep(itemCurrPos,itemTagetPos);
+
+                    if(step <= 1){
+                        continue;
+                    }
+                    flag = false;
+                    break;
+                }
+
+                if(!flag){
+                    params.getSessionData().getLeader().getPos().setRowIndex(sourceRowIndex);
+                    params.getSessionData().getLeader().getPos().setColIndex(sourceColIndex);
+                }
+            }
+
+        }
+
+        for(Action action : actions){
+            if(action.isUsed())continue;
+
+            int suffix = Integer.valueOf(action.getTId().substring(1,2));
+            Position currPos = mapService.getPosition(params.getView(),action.getTId());
+            Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
+
+            Position targetPos = null;
+            switch (suffix){
+                case 1:targetPos = byLeader1(params);break;
+                case 2:targetPos = byLeader2(params);break;
+                case 3:targetPos = params.getSessionData().isMass()?byLeader3(params):quick(params,tank,currPos,1);break;
+                case 4:targetPos = params.getSessionData().isMass()?byLeader4(params):quick(params,tank,currPos,-1);break;
+                case 5:targetPos = byLeader5(params);break;
+            }
+
+            if(targetPos == null){
+                targetPos = currPos;
+            }
+
+            AStar aStar = new AStar(params.getView());
+            mapService.buildPosition(params.getView(),targetPos);
+            String targetMId = params.getView().get(targetPos.getRowIndex(),targetPos.getColIndex());
+            aStar.appendBlockList(MapEnum.valueOf(targetMId));
+
+            //获取最大行进路线
+            Position nextPos = aStar.findPath(currPos,targetPos);
+            nextPos = mapService.getMaxNext(tank,currPos,nextPos);
+
+            //没有下一步就不动
+            if(nextPos == null){
+                nextPos = currPos;
+            }
+
+            params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
+            params.getView().getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
+
+            //根据坐标，计算方位和步长
+            moveService.buildAction(action,currPos,nextPos);
+        }
+
+        /*if(action.isUsed()){
             return NodeType.Failure;
         }
 
         int suffix = Integer.valueOf(action.getTId().substring(1,2));
 
 
-        Position currPos = mapService.getPosition(params.getView(),action.getTId());
 
-        Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
+
+
 
         Position nextPos = null;
         switch (suffix){
@@ -54,10 +145,136 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
 
             //根据坐标，计算方位和步长
             moveService.buildAction(action,currPos,nextPos);
-        }
+        }*/
 
         return NodeType.Success;
     }
+
+    private Position byLeader5(GlobalValues params) {
+        Leader leader = params.getSessionData().getLeader();
+        int rowIndex = leader.getPos().getRowIndex();
+        int colIndex = leader.getPos().getColIndex();
+        switch (leader.getDirection()){
+            case UP:
+                rowIndex+=1;
+                break;
+            case RIGHT:
+                colIndex-=1;
+                break;
+            case DOWN:
+                rowIndex-=1;
+                break;
+            case LEFT:
+                colIndex+=1;
+                break;
+            case WAIT:
+                return null;
+        }
+        return new Position(rowIndex,colIndex);
+    }
+
+    private Position byLeader4(GlobalValues params) {
+        Leader leader = params.getSessionData().getLeader();
+        int rowIndex = leader.getPos().getRowIndex();
+        int colIndex = leader.getPos().getColIndex();
+        switch (leader.getDirection()){
+            case UP:
+                colIndex+=2;
+                rowIndex-=1;
+                break;
+            case RIGHT:
+                rowIndex+=2;
+                colIndex+=1;
+                break;
+            case DOWN:
+                colIndex+=2;
+                rowIndex+=1;
+                break;
+            case LEFT:
+                rowIndex+=2;
+                colIndex-=1;
+                break;
+            case WAIT:
+                return null;
+        }
+        return new Position(rowIndex,colIndex);
+    }
+
+    private Position byLeader3(GlobalValues params) {
+        Leader leader = params.getSessionData().getLeader();
+        int rowIndex = leader.getPos().getRowIndex();
+        int colIndex = leader.getPos().getColIndex();
+        switch (leader.getDirection()){
+            case UP:
+                colIndex-=2;
+                rowIndex-=1;
+                break;
+            case RIGHT:
+                rowIndex-=2;
+                colIndex+=1;
+                break;
+            case DOWN:
+                colIndex-=2;
+                rowIndex+=1;
+                break;
+            case LEFT:
+                rowIndex-=2;
+                colIndex-=1;
+                break;
+            case WAIT:
+                return null;
+        }
+        return new Position(rowIndex,colIndex);
+    }
+
+    private Position byLeader2(GlobalValues params) {
+        Leader leader = params.getSessionData().getLeader();
+        int rowIndex = leader.getPos().getRowIndex();
+        int colIndex = leader.getPos().getColIndex();
+        return new Position(rowIndex,colIndex);
+    }
+
+    private Position byLeader1(GlobalValues params) {
+        Leader leader = params.getSessionData().getLeader();
+        int rowIndex = leader.getPos().getRowIndex();
+        int colIndex = leader.getPos().getColIndex();
+        switch (leader.getDirection()){
+            case UP:
+                colIndex-=2;
+                break;
+            case RIGHT:
+                rowIndex-=2;
+                break;
+            case DOWN:
+                colIndex-=2;
+                break;
+            case LEFT:
+                rowIndex-=2;
+                break;
+            case WAIT:
+                return null;
+        }
+        return new Position(rowIndex,colIndex);
+    }
+
+    //获得中心的某个空白点
+    private Position buildCenterBlank(GlobalValues params) {
+        Position target = new Position(params.getView().getRowLen()/2,params.getView().getColLen()/2);
+        String mId = params.getView().getMap().get(target.getRowIndex()).get(target.getColIndex());
+        if(!mapService.isBlock(mId)){
+            List<Position> m3Pos = mapService.findByMapEnum(params.getView(),0,params.getView().getRowLen()-1,0,params.getView().getColLen()-1,MapEnum.M3);
+            if(!m3Pos.isEmpty()){
+                return m3Pos.get(0);
+            }
+
+            List<Position> m1Pos = mapService.findByMapEnum(params.getView(),params.getView().getRowLen()/4,params.getView().getRowLen()-params.getView().getRowLen()/4,params.getView().getColLen()/4,params.getView().getColLen()-params.getView().getColLen()/4,MapEnum.M1);
+            if (!m1Pos.isEmpty()){
+                return m1Pos.get(0);
+            }
+        }
+        return null;
+    }
+
     /**
      * 移动快的
      * @param params
@@ -76,15 +293,7 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,Action> {
             }
         }
 
-        //无M3区域
-        if(targetPos == null){
-            return null;
-        }
-
-        AStar aStar = new AStar(params.getView());
-
-        return aStar.findPath(currPos,targetPos);
-
+        return targetPos;
     }
 
     /**

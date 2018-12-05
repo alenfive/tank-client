@@ -1,9 +1,6 @@
 package com.source3g.tankclient.service;
 
-import com.source3g.tankclient.entity.Action;
-import com.source3g.tankclient.entity.ActionTypeEnum;
-import com.source3g.tankclient.entity.DirectionEnum;
-import com.source3g.tankclient.entity.Position;
+import com.source3g.tankclient.entity.*;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,6 +8,13 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class MoveService {
+
+    public void buildLeaderAction(Leader leader, Position currPos, Position nextPos) {
+        int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
+        int colDiff = nextPos.getColIndex()-currPos.getColIndex();
+        leader.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
+        leader.setPos(new Position(nextPos.getRowIndex(),nextPos.getColIndex()));
+    }
 
     public void buildAction(Action action, Position currPos, Position nextPos) {
         int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();

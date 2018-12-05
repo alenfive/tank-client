@@ -15,7 +15,6 @@ public class GlobalValues {
     //原始参数
     public ClientParam clientParam;
 
-
     //自定义参数
     public TeamDetail currTeam;
     public TMap view;
@@ -25,4 +24,6 @@ public class GlobalValues {
 
     //会话参数
     private SessionData sessionData;
+
+
 }

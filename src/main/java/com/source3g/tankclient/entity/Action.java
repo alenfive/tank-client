@@ -16,6 +16,7 @@ public class Action {
     private ActionTypeEnum type;
     private Integer length;
     private boolean useGlod;
+    private Tank tank;
 
     private boolean used;
 

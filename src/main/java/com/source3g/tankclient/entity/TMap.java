@@ -16,4 +16,8 @@ public class TMap {
     private Integer rowLen;
     private Integer colLen;
     private List<List<String>> map;
+
+    public String get(int r,int c){
+        return map.get(r).get(c);
+    }
 }

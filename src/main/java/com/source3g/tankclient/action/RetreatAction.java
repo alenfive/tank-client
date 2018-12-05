@@ -7,7 +7,6 @@ import com.source3g.tankclient.utils.AStar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -132,7 +131,7 @@ public class RetreatAction extends AbstractActiion<GlobalValues,Action> {
             if(itemPos == null){
                 continue;
             }
-            aStar.resetBlockList(MapEnum.M1,MapEnum.M2,MapEnum.M3,MapEnum.valueOf(item.getTId()));
+            aStar.appendBlockList(MapEnum.M1,MapEnum.M2,MapEnum.M3,MapEnum.valueOf(item.getTId()));
             int diff = aStar.countStep(currPos,itemPos);
 
             if (diffPosition.getPos() != null && diff > diffPosition.getDiff()){

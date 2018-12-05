@@ -21,8 +21,8 @@ public class AStar {
     private ArrayList<Position> closeList = new ArrayList<>();
     private Set<MapEnum> blockList = new HashSet<>(Arrays.asList(MapEnum.M1,MapEnum.M2,MapEnum.M3));
 
-    public void resetBlockList(MapEnum ... arrs){
-        blockList = new HashSet<>(Arrays.asList(arrs));
+    public void appendBlockList(MapEnum ... arrs){
+        blockList.addAll(new HashSet<>(Arrays.asList(arrs)));
     }
 
     public Position findMinFNodeInOpneList() {
@@ -38,6 +38,7 @@ public class AStar {
     public void clear(){
         openList = new ArrayList<>();
         closeList = new ArrayList<>();
+        blockList = new HashSet<>(Arrays.asList(MapEnum.M1,MapEnum.M2,MapEnum.M3));
     }
 
     public AStar(TMap view){
@@ -179,6 +180,7 @@ public class AStar {
 
     public int countStep(Position currPos, Position targetPos) {
         Position head = findPath(currPos,targetPos);
+        if (head == null)return -1;
         int step = 0;
         if(head == null)return step;
         while (head.getParent() != null){

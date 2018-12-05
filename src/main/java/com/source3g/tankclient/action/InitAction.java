@@ -54,7 +54,7 @@ public class InitAction extends AbstractActiion<ClientParam,GlobalValues> {
             globalValues.setBossTeam(bossTeam);
             globalValues.setEnemyTeam(enemyTeam);
             globalValues.setCurrTeamTId(currTeamTId);
-            globalValues.setEnemyTeamTId(currTeamTId);
+            globalValues.setEnemyTeamTId(enemyTeamTId);
             globalValues.setSortNo(0);
 
             //会话参数

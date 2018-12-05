@@ -5,6 +5,8 @@ import com.source3g.tankclient.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,31 +43,36 @@ public class MainService {
 
     public List<Action> action(ClientParam clientParam) {
 
-        GlobalValues globalValues = new GlobalValues();
+        GlobalValues params = new GlobalValues();
 
-        initAction.process(clientParam,globalValues);
-        liveAction.process(globalValues,globalValues.getResultAction());
+        //数据初始化
+        initAction.process(clientParam,params);
+
+        //复活币使用策略
+        liveAction.process(params,params.getResultAction());
+
+
 
         //过淲无生命值的操作
-        List<Action> actions = globalValues.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
+        List<Action> actions = params.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 
         //是否有复活币
-        glodPickupAction.process(globalValues,actions);
-
-        //有敌人
-        attackEnemyAction.process(globalValues,actions);
+        glodPickupAction.process(params,actions);
 
         //攻击BOSS
-        attackBossAction.process(globalValues,actions);
+        attackBossAction.process(params,actions);
+
+        //有敌人
+        attackEnemyAction.process(params,actions);
 
         //扫图
-        onPatrolAction.process(globalValues,actions);
+        onPatrolAction.process(params,actions);
 
-        List<Action> sortedActions = globalValues.getResultAction().stream().sorted(Comparator.comparing(Action::getSort)).collect(Collectors.toList());
+        List<Action> sortedActions = params.getResultAction().stream().sorted(Comparator.comparing(Action::getSort)).collect(Collectors.toList());
 
         //更新最后的位置
-        globalValues.getSessionData().getTankPositions().forEach(item->{
-            Position pos = mapService.getPosition(globalValues.getView(),item.getTId());
+        params.getSessionData().getTankPositions().forEach(item->{
+            Position pos = mapService.getPosition(params.getView(),item.getTId());
             if (pos != null){
                 item.setPosition(pos);
             }

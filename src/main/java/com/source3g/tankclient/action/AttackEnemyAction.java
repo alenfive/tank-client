@@ -33,32 +33,32 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         TMap view = params.getView();
         TeamDetail enemyTeam = params.getEnemyTeam();
         MapEnum[] enemyMaps = enemyTeam.getTanks().stream().map(item->MapEnum.valueOf(item.getTId())).toArray(MapEnum[]::new);
-        List<Position> enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
 
-        if(enemyPosList.isEmpty()){
-            return NodeType.Failure;
-        }
-
-        //集结
-        params.getSessionData().setMass(true);
-        //获得集结点
-        Position massPos = buildMassPos(params,enemyPosList);
-        moveService.buildLeader(params,actions,massPos);
 
         Integer currShengmin = params.getCurrTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
         Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
 
 
         for (Action action : actions){
-
             if (action.isUsed())continue;
+
+            List<Position> enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
+
+            if(enemyPosList.isEmpty()){
+                return NodeType.Failure;
+            }
+
+            //集结
+            params.getSessionData().setMass(true);
+
+
 
             Position currPos = mapService.getPosition(params.getView(),action.getTId());
             Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
 
 
             //会被敌方攻击到，撤退
-            if(currShengmin < enemyShengmin*2){
+            if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
                 List<DiffPosition> beAttackeds = attackService.beAttacked(params,tank,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
                 if(!beAttackeds.isEmpty()){
                     if(beAttackeds.size() > 1 && retreat(params,action,params.getEnemyTeam().getTanks(),tank,currPos)){
@@ -68,7 +68,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
                         int diffEnemy = tank.getShengming()/beAttackeds.get(0).getTank().getGongji();
                         List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getTank(),params.getCurrTeam().getTanks());
 
-                        if(diffPos.size() == 1 && diffCurr < diffEnemy && retreat(params,action,params.getEnemyTeam().getTanks(),tank,currPos)){
+                        if(diffPos.size() == 1 && diffCurr > diffEnemy && retreat(params,action,params.getEnemyTeam().getTanks(),tank,currPos)){
                             continue;
                         }else if(diffPos.size() < 2 && retreat(params,action,params.getEnemyTeam().getTanks(),tank,currPos)){
                             continue;
@@ -89,9 +89,12 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
                 continue;
             }
 
+            //获得集结点
+            Position massPos = buildMassPos(params,enemyPosList);
+            moveService.buildLeader(params,actions,massPos);
+            action.setTarget(massPos);
             //向敌方靠近
-            mapService.buildBlank(params,enemyPosList.get(0));
-            action.setTarget(enemyPosList.get(0));
+            moveService.buildMove(params,action);
         }
 
         return NodeType.Success;
@@ -133,8 +136,25 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         return true;
     }
 
+    //寻找落单的
     private Position buildMassPos(GlobalValues params, List<Position> enemyPosList) {
-        return new Position(enemyPosList.get(0).getRowIndex(),enemyPosList.get(0).getColIndex());
+        int scope = params.getView().getRowLen()/2;
+        MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
+        for(int i=scope;i>=0;i--){
+            for(Position currPos : enemyPosList){
+                int startR = currPos.getRowIndex()-i;
+                int endR = currPos.getRowIndex()+i;
+                int startC = currPos.getColIndex()-i;
+                int endC = currPos.getColIndex()+i;
+
+                List<Position> enumsResut = mapService.findByMapEnum(params.getView(),startR,endR,startC,endC,enums);
+                if(enumsResut.size() == 1){
+                    return currPos;
+                }
+            }
+        }
+
+        return enemyPosList.get(0);
     }
 
 

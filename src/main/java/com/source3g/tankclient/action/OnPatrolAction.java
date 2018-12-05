@@ -2,6 +2,7 @@ package com.source3g.tankclient.action;
 
 import com.source3g.tankclient.entity.Action;
 import com.source3g.tankclient.entity.GlobalValues;
+import com.source3g.tankclient.entity.MapEnum;
 import com.source3g.tankclient.entity.Position;
 import com.source3g.tankclient.service.MapService;
 import com.source3g.tankclient.service.MoveService;
@@ -46,7 +47,18 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,List<Action>> {
     private Position buildCenterBlank(GlobalValues params) {
 
         Position target = new Position(params.getView().getRowLen()/2,params.getView().getColLen()/2);
-        mapService.buildBlank(params,target);
+        String centerMId = params.getView().get(target.getRowIndex(),target.getColIndex());
+        Integer currShengmin = params.getCurrTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
+        Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
+
+        //还有资源，或者敌方相对残血时，继续扫描未知区域
+        if(!MapEnum.M3.name().equals(centerMId) && params.getEnemyTeam().getExtend() + params.getCurrTeam().getExtend()<3 ||
+                (currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0)){
+            List<Position> m3Pos = mapService.findByMapEnum(params.getView(),0,params.getView().getRowLen()-1,0,params.getView().getColLen()-1, MapEnum.M3);
+            if(!m3Pos.isEmpty()){
+                target = m3Pos.get(0);
+            }
+        }
 
        /*
         String mId = params.getView().getMap().get(target.getRowIndex()).get(target.getColIndex());

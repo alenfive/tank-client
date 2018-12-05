@@ -1,9 +1,12 @@
 package com.source3g.tankclient.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.utils.AStar;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -12,6 +15,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class MapService {
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final List<String> blocks = Arrays.asList(
             MapEnum.M1.name(),
@@ -178,9 +184,9 @@ public class MapService {
         if (pos == null)return;
         TMap view = params.getView();
         int rowIndex = pos.getRowIndex()<=0?0:pos.getRowIndex();
-        rowIndex = rowIndex>view.getRowLen()-1?rowIndex-1:rowIndex;
+        rowIndex = rowIndex>view.getRowLen()-1?view.getRowLen()-1:rowIndex;
         int colIndex = pos.getColIndex()<=0?0:pos.getColIndex();
-        colIndex = colIndex>view.getColLen()-1?colIndex-1:colIndex;
+        colIndex = colIndex>view.getColLen()-1?view.getColLen()-1:colIndex;
 
         pos.setRowIndex(rowIndex);
         pos.setColIndex(colIndex);
@@ -195,6 +201,7 @@ public class MapService {
      * @param targetPos
      */
     public void buildBlank(GlobalValues params, Position targetPos) {
+        this.buildPosition(params,targetPos);
         String mId = params.getView().getMap().get(targetPos.getRowIndex()).get(targetPos.getColIndex());
         if(!isBlock(mId)){
             return;
@@ -221,14 +228,50 @@ public class MapService {
         if(ablePos.isEmpty())return;
 
         AStar aStar = new AStar(params.getView());
-        DiffPosition minDiffPos = ablePos.stream().map(item->{
+        List<DiffPosition> diffPos = ablePos.stream().map(item->{
             DiffPosition diffPosition = new DiffPosition();
             diffPosition.setPos(item);
             diffPosition.setDiff(aStar.countStep(currPos,item));
             return diffPosition;
-        }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+        }).collect(Collectors.toList());
 
+        DiffPosition minDiffPos = diffPos.stream().min(Comparator.comparing(DiffPosition::getDiff)).get();
         targetPos.setRowIndex(minDiffPos.getPos().getRowIndex());
         targetPos.setColIndex(minDiffPos.getPos().getColIndex());
+    }
+
+    public TMap copyAttackLine(List<Tank> tanks,TMap view) {
+        try {
+            TMap result = objectMapper.readValue(objectMapper.writeValueAsString(view),TMap.class);
+
+            //置灰敌方的攻击路线
+            tanks.forEach(item->{
+                Position itemPos = this.getPosition(result,item.getTId());
+                if(itemPos == null)return;
+                List<Position> attackLine = new ArrayList<>();
+                for(int i=1;i<=item.getShecheng();i++){
+                    attackLine.addAll(Arrays.asList(
+                            new Position(itemPos.getRowIndex()-i,itemPos.getColIndex()),
+                            new Position(itemPos.getRowIndex(),itemPos.getColIndex()+i),
+                            new Position(itemPos.getRowIndex()+i,itemPos.getColIndex()),
+                            new Position(itemPos.getRowIndex(),itemPos.getColIndex()-i)
+                    ));
+                }
+                attackLine.forEach(item2->{
+                    boolean valid = item2.getRowIndex()>=0 && item2.getRowIndex()<result.getRowLen() && item2.getColIndex()>=0 && item2.getColIndex()<result.getColLen();
+                    if (valid){
+                        String mId = result.get(item2.getRowIndex(),item2.getColIndex());
+                        if(MapEnum.M1.name().equals(mId)){
+                            result.getMap().get(item2.getRowIndex()).set(item2.getColIndex(),MapEnum.T1.name());
+                        }
+                    }
+                });
+            });
+            log(result);
+            return result;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

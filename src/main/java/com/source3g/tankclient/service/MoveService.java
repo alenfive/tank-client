@@ -69,6 +69,8 @@ public class MoveService {
         Position nextPos = leaderPos.getParent();
         String mId = params.getView().getMap().get(nextPos.getRowIndex()).get(nextPos.getColIndex());
         this.buildLeaderAction(params.getSessionData().getLeader(),leaderPos,nextPos);
+
+        //前进的路上有自己家的坦克，让他们先走
         if(params.getCurrTeamTId().contains(mId)){
             Action action = actions.stream().filter(item->item.getTId().equals(mId)).findFirst().orElse(null);
             this.buildMove(params,action);
@@ -134,8 +136,14 @@ public class MoveService {
             case 5:targetPos = action.getTarget()!=null?action.getTarget():buildConflict(this.byLeader5(params),params,tank);break;
         }
 
+        if (targetPos == null)return;
 
-        AStar aStar = new AStar(params.getView());
+        //找个空白点用于定位
+        mapService.buildBlank(params,targetPos);
+
+        //创建一个新视图避免走入弹路
+        TMap attackLineMap = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
+        AStar aStar = new AStar(attackLineMap);
         mapService.buildPosition(params,targetPos);
 
         //获取最大行进路线

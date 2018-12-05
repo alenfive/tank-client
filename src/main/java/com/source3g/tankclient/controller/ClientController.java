@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -70,6 +71,7 @@ public class ClientController {
 
     @PostMapping("/action")
     public synchronized List<Action> action(@RequestBody ClientParam clientParam) throws Exception {
+
         log.info("info:{}",clientParam);
         mapService.log(clientParam.getView());
 

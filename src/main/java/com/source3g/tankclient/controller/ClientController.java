@@ -50,7 +50,7 @@ public class ClientController {
         }).collect(Collectors.toList());
 
         Position leaderPos = buildLeaderPos(clientParam.getView(),currTeam);
-        sessionData.setLeader(Leader.builder().pos(leaderPos).build());
+        sessionData.setLeader(Leader.builder().currPos(leaderPos).build());
         sessionData.setTankPositions(tankPositions);
 
         mapService.log(clientParam.getView());
@@ -77,8 +77,8 @@ public class ClientController {
         if(sessionData == null || sessionData.getGameOverTime() == null){
             this.init(clientParam);
         }
-        sessionData.getLeader().setDirection(null);
         clientParam.setSessionData(sessionData);
+        sessionData.getLeader().setFinalPos(null);
         List<Action> actions = mainService.action(clientParam);
 
         actions.stream().filter(item->item.getLength()>0).forEach(item-> System.out.println(item.getTId()+":"+item.getLength()+":"+item.getDirection()+":"+item.getType()+":"+item.getSort()));

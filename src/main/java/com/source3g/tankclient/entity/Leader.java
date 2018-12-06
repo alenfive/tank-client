@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class Leader {
-    private Position pos;
-    private DirectionEnum direction;
+    //当前位置
+    private Position currPos;
+
+    //最终目标
+    private Position finalPos;
 }

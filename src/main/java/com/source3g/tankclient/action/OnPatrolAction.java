@@ -28,12 +28,12 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,List<Action>> {
     @Override
     public NodeType process(GlobalValues params, List<Action> actions) {
 
-        if(params.getSessionData().getLeader().getDirection() == null){
+        if(params.getSessionData().getLeader().getFinalPos() == null){
             //构建leader行动
             Position targetPos = leaderService.buildCenterBlank(params);
-            mapService.buildBlank(params,targetPos);
+            mapService.buildBlank(params,params.getSessionData().getLeader().getCurrPos(),targetPos);
 
-            Position leaderPos = params.getSessionData().getLeader().getPos();
+            Position leaderPos = params.getSessionData().getLeader().getCurrPos();
 
             AStar aStar = new AStar(params.getView());
             aStar.appendBlockList(params.getCurrTeamTId());
@@ -43,6 +43,7 @@ public class OnPatrolAction extends AbstractActiion<GlobalValues,List<Action>> {
             if(leaderPos != null && leaderPos.getParent() != null){
                 nextPos = leaderPos.getParent();
             }
+            params.getSessionData().getLeader().setFinalPos(targetPos);
 
             leaderService.buildLeader(params,actions,nextPos);
         }

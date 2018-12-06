@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("Duplicates")
 @Service
 public class MapService {
 
@@ -197,11 +198,17 @@ public class MapService {
     }
 
     /**
-     * 返回附近空白点
+     * 返回target附近空白点距离currPos最近的点
      * @param targetPos
      */
-    public void buildBlank(GlobalValues params, Position targetPos) {
+    public void buildBlank(GlobalValues params,Position currPos, Position targetPos) {
         this.buildPosition(params,targetPos);
+
+        int diff = Math.abs(targetPos.getRowIndex()-currPos.getRowIndex()) + Math.abs(targetPos.getColIndex()-currPos.getColIndex());
+        if(diff == 1){  //挨着的，已经最近的距离了
+            return;
+        }
+
         String mId = params.getView().getMap().get(targetPos.getRowIndex()).get(targetPos.getColIndex());
         if(!isBlock(mId)){
             return;
@@ -220,10 +227,9 @@ public class MapService {
         ablePos.forEach(item->buildPosition(params,item));
         ablePos = ablePos.stream().filter(item->{
             String itemMId = params.getView().get(item.getRowIndex(),item.getColIndex());
-            return !this.isBlock(itemMId);
+            return !this.isBlock(itemMId) ;
         }).collect(Collectors.toList());
 
-        Position currPos = params.getSessionData().getLeader().getPos();
 
         if(ablePos.isEmpty())return;
 
@@ -231,6 +237,7 @@ public class MapService {
         List<DiffPosition> diffPos = ablePos.stream().map(item->{
             DiffPosition diffPosition = new DiffPosition();
             diffPosition.setPos(item);
+            aStar.clear();
             diffPosition.setDiff(aStar.countStep(currPos,item));
             return diffPosition;
         }).collect(Collectors.toList());
@@ -267,7 +274,6 @@ public class MapService {
                     }
                 });
             });
-            log(result);
             return result;
         } catch (IOException e) {
             e.printStackTrace();

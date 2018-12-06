@@ -96,7 +96,6 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
                 continue;
             }
 
-            System.out.println();
         }
 
         enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
@@ -105,10 +104,11 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         if(!enemyPosList.isEmpty()){
 
             //获得攻击目标
-            Position targetPos = buildMassPos(params,enemyPosList);
-            if (targetPos == null)return NodeType.Failure;
+            Position finalPos = buildMassPos(params,enemyPosList);
+            if (finalPos == null)return NodeType.Failure;
             //根据攻击目标，获得下一步的集结点
-            Position rallyPointPos = buildRallyPoint(params,targetPos);
+            Position rallyPointPos = buildRallyPoint(params,finalPos);
+            params.getSessionData().getLeader().setFinalPos(finalPos);
             leaderService.buildLeader(params,actions,rallyPointPos);
         }
 
@@ -120,28 +120,39 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         //计算敌方的攻击范围，在范围外找一个集结点
 
         TMap view = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
-        AStar aStar = new AStar(view);
-        Position currPos = params.getSessionData().getLeader().getPos();
-        for(int i=1;i<4;i++){
-            int startR = target.getRowIndex()-i;
-            int endR = target.getRowIndex()+i;
-            int startC = target.getColIndex()-i;
-            int endC = target.getColIndex()+i;
-            List<Position> m1List = mapService.findByMapEnum(view,startR,endR,startC,endC,MapEnum.M1);
-            if (m1List.isEmpty())continue;
 
-            List<DiffPosition> diffPos = m1List.stream().map(item->{
-                DiffPosition diffPosition = new DiffPosition();
-                diffPosition.setPos(item);
-                diffPosition.setDiff(aStar.countStep(currPos,item));
-                return diffPosition;
-            }).collect(Collectors.toList());
+        Position currPos = params.getSessionData().getLeader().getCurrPos();
+        int scope = 1;
+        int startR = target.getRowIndex()-scope;
+        int endR = target.getRowIndex()+scope;
+        int startC = target.getColIndex()-scope;
+        int endC = target.getColIndex()+scope;
 
-            DiffPosition minDiffPos = diffPos.stream().min(Comparator.comparing(DiffPosition::getDiff)).get();
-
-            return minDiffPos.getPos();
+        boolean isTrue = currPos.getRowIndex()>=startR && currPos.getRowIndex()<=endR && currPos.getColIndex() >= startC && currPos.getColIndex() <= endC;
+        if(isTrue){
+            return currPos;
         }
-        return null;
+
+        List<Position> m1List = mapService.findByMapEnum(view,startR,endR,startC,endC,MapEnum.M1);
+        if (m1List.isEmpty())return currPos;
+
+        List<DiffPosition> diffPos = m1List.stream().map(item->{
+            DiffPosition diffPosition = new DiffPosition();
+            diffPosition.setPos(item);
+            AStar aStar = new AStar(view);
+            aStar.appendBlockList(params.getCurrTeamTId());
+            diffPosition.setDiff(aStar.countStep(currPos,item));
+            return diffPosition;
+        }).collect(Collectors.toList());
+
+        //最近点
+        DiffPosition minDiffPos = diffPos.stream().min(Comparator.comparing(DiffPosition::getDiff)).get();
+
+        AStar aStar = new AStar(view);
+        aStar.appendBlockList(params.getCurrTeamTId());
+        aStar.findPath(currPos,minDiffPos.getPos());
+        return currPos.getParent();
+
     }
 
     /**

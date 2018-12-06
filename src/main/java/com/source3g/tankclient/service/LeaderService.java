@@ -40,36 +40,38 @@ public class LeaderService {
         return target;
     }
 
-    public void buildLeaderAction(Leader leader, Position currPos, Position nextPos) {
-        int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
-        int colDiff = nextPos.getColIndex()-currPos.getColIndex();
-        leader.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
-        leader.setPos(new Position(nextPos.getRowIndex(),nextPos.getColIndex()));
+    /**
+     *
+     * @param leader
+     * @param currPos 当前位置
+     * @param nextPos 下一步位置
+     * @param finalPos 终点
+     */
+    public void buildLeaderAction(Leader leader, Position currPos, Position nextPos,Position finalPos) {
+        int rowDiff = finalPos.getRowIndex()-currPos.getRowIndex();
+        int colDiff = finalPos.getColIndex()-currPos.getColIndex();
+        leader.setCurrPos(new Position(nextPos.getRowIndex(),nextPos.getColIndex()));
     }
 
     /**
      *
      * @param params
      * @param actions
-     * @param nextPos 最终集合点坐标
      */
     public void buildLeader(GlobalValues params, List<Action> actions, Position nextPos) {
 
         if(nextPos == null){
-            params.getSessionData().getLeader().setDirection(DirectionEnum.UP);
             return;
         }
 
-        Position leaderPos = params.getSessionData().getLeader().getPos();
+        Position leaderPos = params.getSessionData().getLeader().getCurrPos();
+        Position finalPos = params.getSessionData().getLeader().getFinalPos();
         int sourceRowIndex = leaderPos.getRowIndex();
         int sourceColIndex = leaderPos.getColIndex();
 
-        AStar aStar = new AStar(params.getView());
-        aStar.appendBlockList(params.getCurrTeamTId());
+        this.buildLeaderAction(params.getSessionData().getLeader(),leaderPos,nextPos,finalPos);
 
         String mId = params.getView().getMap().get(nextPos.getRowIndex()).get(nextPos.getColIndex());
-        this.buildLeaderAction(params.getSessionData().getLeader(),leaderPos,nextPos);
-
         //前进的路上有自己家的坦克，让他们先走
         if(params.getCurrTeamTId().contains(mId)){
             Action action = actions.stream().filter(item->item.getTId().equals(mId)).findFirst().orElse(null);
@@ -97,7 +99,8 @@ public class LeaderService {
             if(itemCurrPos == null){
                 continue;
             }
-
+            AStar aStar = new AStar(params.getView());
+            aStar.appendBlockList(action.getTId());
             Integer step = aStar.countStep(itemCurrPos,itemTagetPos);
 
             if(step <= 1){
@@ -107,8 +110,8 @@ public class LeaderService {
         }
 
         if(!flag){
-            params.getSessionData().getLeader().getPos().setRowIndex(sourceRowIndex);
-            params.getSessionData().getLeader().getPos().setColIndex(sourceColIndex);
+            params.getSessionData().getLeader().getCurrPos().setRowIndex(sourceRowIndex);
+            params.getSessionData().getLeader().getCurrPos().setColIndex(sourceColIndex);
         }
     }
 

@@ -78,8 +78,6 @@ public class DefenseAction extends AbstractActiion<GlobalValues,Action> {
 
         //允许下一步，替换地图
         if(nextPos != null){
-            view.getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
-            view.getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
 
             //根据坐标，计算方位和步长
             moveService.buildAction(params,action,currPos,nextPos);

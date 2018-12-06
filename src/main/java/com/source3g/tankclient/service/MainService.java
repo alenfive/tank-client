@@ -32,8 +32,6 @@ public class MainService {
     @Autowired
     private AttackEnemyAction attackEnemyAction;
     @Autowired
-    private RetreatAction retreatAction;
-    @Autowired
     private MapService mapService;
     @Autowired
     private AttackService attackService;
@@ -58,13 +56,13 @@ public class MainService {
         List<Action> actions = params.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 
         //是否有复活币
-        /*glodPickupAction.process(params,actions);
+        glodPickupAction.process(params,actions);
 
         //有敌人
         attackEnemyAction.process(params,actions);
 
         //攻击BOSS
-        attackBossAction.process(params,actions);*/
+        attackBossAction.process(params,actions);
 
         //扫图
         onPatrolAction.process(params,actions);

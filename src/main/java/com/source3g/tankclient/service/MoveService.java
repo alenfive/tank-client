@@ -11,6 +11,7 @@ import java.util.List;
 /**
  * 移动
  */
+@SuppressWarnings("Duplicates")
 @Service
 public class MoveService {
 
@@ -20,6 +21,9 @@ public class MoveService {
 
 
     public void buildAction(GlobalValues params,Action action, Position currPos, Position nextPos) {
+        params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
+        params.getView().getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
+
         int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
         int colDiff = nextPos.getColIndex()-currPos.getColIndex();
         action.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
@@ -29,6 +33,8 @@ public class MoveService {
         action.setSort(params.getSortNo());
         params.setSortNo(params.getSortNo()+1);
 
+
+        mapService.log(params.getView());
     }
 
 
@@ -58,20 +64,22 @@ public class MoveService {
         switch (suffix){
             case 1:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader1(params);break;
             case 2:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader2(params);break;
-            case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
-            case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
-            case 5:targetPos = action.getTarget()!=null?action.getTarget():buildConflict(this.byLeader5(params),params,tank);break;
+            //case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
+            //case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
+            case 5:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader5(params);break;
         }
 
-        if (targetPos == null)return;
+        //如果为空或为自己
+        if (targetPos == null || (currPos.getRowIndex() == targetPos.getRowIndex() && currPos.getColIndex() == targetPos.getColIndex()))return;
 
         //找个空白点用于定位
-        mapService.buildBlank(params,targetPos);
+        mapService.buildBlank(params,currPos,targetPos);
+
+
 
         //创建一个新视图避免走入弹路
         TMap attackLineMap = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
         AStar aStar = new AStar(attackLineMap);
-        mapService.buildPosition(params,targetPos);
 
         //获取最大行进路线
         Position nextPos = aStar.findPath(currPos,targetPos);
@@ -81,117 +89,69 @@ public class MoveService {
 
         nextPos = mapService.getMaxNext(tank,currPos,nextPos);
 
-        params.getView().getMap().get(currPos.getRowIndex()).set(currPos.getColIndex(),MapEnum.M1.name());
-        params.getView().getMap().get(nextPos.getRowIndex()).set(nextPos.getColIndex(),action.getTId());
-
         //根据坐标，计算方位和步长
         this.buildAction(params,action,currPos,nextPos);
     }
 
     public Position byLeader5(GlobalValues params) {
         Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getPos().getRowIndex();
-        int colIndex = leader.getPos().getColIndex();
-        switch (leader.getDirection()){
-            case UP:
-                rowIndex+=1;
-                break;
-            case RIGHT:
-                colIndex-=1;
-                break;
-            case DOWN:
-                rowIndex-=1;
-                break;
-            case LEFT:
-                colIndex+=1;
-                break;
-            case WAIT:
-                return null;
+        Position currPos = leader.getCurrPos();
+        Position finalPos = leader.getFinalPos();
+
+        int rowIndex = currPos.getRowIndex();
+        int colIndex = currPos.getColIndex();
+
+        int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
+        int colDiff = finalPos.getColIndex() - currPos.getColIndex();
+
+        if(colDiff < 0 && rowDiff >0){//第一象线
+            rowIndex -= 1;
+        }else if(colDiff >0 && rowDiff >0){ //二象线
+            rowIndex -= 1;
+        }else if(colDiff >0 && rowDiff <0){ //三象线
+            rowIndex +=1;
+        }else if(colDiff <0 && rowDiff <0){ //四象线
+            rowIndex +=1;
         }
         return new Position(rowIndex,colIndex);
     }
 
-    public Position byLeader4(GlobalValues params) {
-        Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getPos().getRowIndex();
-        int colIndex = leader.getPos().getColIndex();
-        switch (leader.getDirection()){
-            case UP:
-                colIndex+=2;
-                rowIndex-=1;
-                break;
-            case RIGHT:
-                rowIndex+=2;
-                colIndex+=1;
-                break;
-            case DOWN:
-                colIndex+=2;
-                rowIndex+=1;
-                break;
-            case LEFT:
-                rowIndex+=2;
-                colIndex-=1;
-                break;
-            case WAIT:
-                return null;
-        }
-        return new Position(rowIndex,colIndex);
+    public Position byLeader4(GlobalValues params,Position finalPos) {
+        return null;
     }
 
     public Position byLeader3(GlobalValues params) {
-        Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getPos().getRowIndex();
-        int colIndex = leader.getPos().getColIndex();
-        switch (leader.getDirection()){
-            case UP:
-                colIndex-=2;
-                rowIndex-=1;
-                break;
-            case RIGHT:
-                rowIndex-=2;
-                colIndex+=1;
-                break;
-            case DOWN:
-                colIndex-=2;
-                rowIndex+=1;
-                break;
-            case LEFT:
-                rowIndex-=2;
-                colIndex-=1;
-                break;
-            case WAIT:
-                return null;
-        }
-        return new Position(rowIndex,colIndex);
+        return null;
     }
 
     public Position byLeader2(GlobalValues params) {
         Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getPos().getRowIndex();
-        int colIndex = leader.getPos().getColIndex();
+        int rowIndex = leader.getCurrPos().getRowIndex();
+        int colIndex = leader.getCurrPos().getColIndex();
         return new Position(rowIndex,colIndex);
     }
 
     public Position byLeader1(GlobalValues params) {
         Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getPos().getRowIndex();
-        int colIndex = leader.getPos().getColIndex();
-        switch (leader.getDirection()){
-            case UP:
-                colIndex-=1;
-                break;
-            case RIGHT:
-                rowIndex-=1;
-                break;
-            case DOWN:
-                colIndex-=1;
-                break;
-            case LEFT:
-                rowIndex-=1;
-                break;
-            case WAIT:
-                return null;
+        Position currPos = leader.getCurrPos();
+        Position finalPos = leader.getFinalPos();
+
+        int rowIndex = currPos.getRowIndex();
+        int colIndex = currPos.getColIndex();
+
+        int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
+        int colDiff = finalPos.getColIndex() - currPos.getColIndex();
+
+        if(colDiff < 0 && rowDiff >0){//第一象线
+            colIndex += 1;
+        }else if(colDiff >0 && rowDiff >0){ //二象线
+            colIndex -= 1;
+        }else if(colDiff >0 && rowDiff <0){ //三象线
+            colIndex -= 1;
+        }else if(colDiff <0 && rowDiff <0){ //四象线
+            colIndex += 1;
         }
+
         return new Position(rowIndex,colIndex);
     }
 
@@ -315,7 +275,6 @@ public class MoveService {
             buildPosition(item,view,tank);
         });
 
-        mapService.flag(view,regions,"11");
         return regions;
     }
 

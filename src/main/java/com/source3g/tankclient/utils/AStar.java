@@ -77,7 +77,7 @@ public class AStar {
 
     public boolean canReach(int rowIndex, int colIndex) {
         if (rowIndex >= 0 && rowIndex < view.getRowLen() && colIndex >= 0 && colIndex < view.getColLen()) {
-            return blockList.contains(view.getMap().get(rowIndex).get(colIndex));
+            return blockList.contains(view.get(rowIndex,colIndex));
         }
         return false;
     }

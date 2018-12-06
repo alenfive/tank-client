@@ -1,12 +1,13 @@
 package com.source3g.tankclient.service;
 
 import com.source3g.tankclient.action.*;
-import com.source3g.tankclient.entity.*;
+import com.source3g.tankclient.entity.Action;
+import com.source3g.tankclient.entity.ClientParam;
+import com.source3g.tankclient.entity.GlobalValues;
+import com.source3g.tankclient.entity.Position;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,13 +58,13 @@ public class MainService {
         List<Action> actions = params.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 
         //是否有复活币
-        glodPickupAction.process(params,actions);
-
-        //攻击BOSS
-        attackBossAction.process(params,actions);
+        /*glodPickupAction.process(params,actions);
 
         //有敌人
         attackEnemyAction.process(params,actions);
+
+        //攻击BOSS
+        attackBossAction.process(params,actions);*/
 
         //扫图
         onPatrolAction.process(params,actions);

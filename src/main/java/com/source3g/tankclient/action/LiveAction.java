@@ -2,6 +2,7 @@ package com.source3g.tankclient.action;
 
 import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.AttackService;
+import com.source3g.tankclient.service.MapService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,8 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
 
     @Autowired
     private AttackService attackService;
+    @Autowired
+    private MapService mapService;
 
     @Override
     public NodeType process(GlobalValues params, List<Action> actions) {
@@ -28,10 +31,22 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
             return diff>0?-1:1;
         }).collect(Collectors.toList());
 
+        //队友枚举
+        MapEnum[] currEnums = params.getCurrTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
+
 
         //如果死亡的坦克附近有敌人，并且战斗力完胜则复活
         params.getCurrTeam().getTanks().stream().filter(item->item.getShengyushengming() == 0).forEach(tank->{
             Action action = actions.stream().filter(item->item.getTId().equals(tank.getTId())).findFirst().orElse(null);
+
+            //附近有队友
+            Position itemPos = params.getSessionData().getTankPositions().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().get().getPosition();
+            List<Position> teammate = mapService.findByMapEnum(params.getView(),itemPos.getRowIndex()-1,itemPos.getRowIndex()+1,itemPos.getColIndex()-1,itemPos.getColIndex()+1,currEnums);
+
+            if(!teammate.isEmpty()){
+                useGlod(params,action);
+                return;
+            }
 
             //射程范围内可攻击的坐标
             List<DiffPosition> beAttacked = attackService.beAttacked(params, tank,params.getEnemyTeam().getTanks());

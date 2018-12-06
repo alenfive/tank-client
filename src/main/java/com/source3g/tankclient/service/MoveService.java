@@ -17,12 +17,7 @@ public class MoveService {
     @Autowired
     private MapService mapService;
 
-    public void buildLeaderAction(Leader leader, Position currPos, Position nextPos) {
-        int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
-        int colDiff = nextPos.getColIndex()-currPos.getColIndex();
-        leader.setDirection(rowDiff>0?DirectionEnum.DOWN:rowDiff<0?DirectionEnum.UP:colDiff>0?DirectionEnum.RIGHT:colDiff<0?DirectionEnum.LEFT:DirectionEnum.WAIT);
-        leader.setPos(new Position(nextPos.getRowIndex(),nextPos.getColIndex()));
-    }
+
 
     public void buildAction(GlobalValues params,Action action, Position currPos, Position nextPos) {
         int rowDiff = nextPos.getRowIndex()-currPos.getRowIndex();
@@ -50,75 +45,7 @@ public class MoveService {
         return positions.get(0);
     }
 
-    public void buildLeader(GlobalValues params, List<Action> actions, Position targetPos) {
 
-        mapService.buildBlank(params,targetPos);
-        Position leaderPos = params.getSessionData().getLeader().getPos();
-        int sourceRowIndex = leaderPos.getRowIndex();
-        int sourceColIndex = leaderPos.getColIndex();
-
-        AStar aStar = new AStar(params.getView());
-        aStar.appendBlockList(params.getCurrTeamTId());
-        aStar.findPath(leaderPos,targetPos);
-
-        if(leaderPos == null || leaderPos.getParent() == null){
-            params.getSessionData().getLeader().setDirection(DirectionEnum.UP);
-            return;
-        }
-
-        Position nextPos = leaderPos.getParent();
-        String mId = params.getView().getMap().get(nextPos.getRowIndex()).get(nextPos.getColIndex());
-        this.buildLeaderAction(params.getSessionData().getLeader(),leaderPos,nextPos);
-
-        //前进的路上有自己家的坦克，让他们先走
-        if(params.getCurrTeamTId().contains(mId)){
-            Action action = actions.stream().filter(item->item.getTId().equals(mId)).findFirst().orElse(null);
-            this.buildMove(params,action);
-        }
-
-
-        //判断移动后队友是否能跟上，不能跟上就不动
-        boolean flag = true;
-        for(Action action : actions){
-            int suffix = Integer.valueOf(action.getTId().substring(1,2));
-
-            Position itemTagetPos = null;
-            switch (suffix){
-                case 1:itemTagetPos = byLeader1(params);break;
-                case 2:itemTagetPos = byLeader2(params);break;
-                case 3:itemTagetPos = params.getSessionData().isMass()?byLeader3(params):null;break;
-                case 4:itemTagetPos = params.getSessionData().isMass()?byLeader4(params):null;break;
-                case 5:itemTagetPos = byLeader5(params);break;
-            }
-            mapService.buildPosition(params,itemTagetPos);
-            if(itemTagetPos == null || mapService.isBlock(params.getView().getMap().get(itemTagetPos.getRowIndex()).get(itemTagetPos.getColIndex()))){
-                continue;
-            }
-            Position itemCurrPos = mapService.getPosition(params.getView(),action.getTId());
-
-            if(itemCurrPos == null){
-                continue;
-            }
-
-            aStar.clear();
-            String targetMId = params.getView().get(itemTagetPos.getRowIndex(),itemTagetPos.getColIndex());
-            aStar.appendBlockList(targetMId);
-            Integer step = aStar.countStep(itemCurrPos,itemTagetPos);
-
-            if(step <= 1){
-                continue;
-            }
-
-            action.setTarget(itemTagetPos);
-
-            flag = false;
-        }
-
-        if(!flag){
-            params.getSessionData().getLeader().getPos().setRowIndex(sourceRowIndex);
-            params.getSessionData().getLeader().getPos().setColIndex(sourceColIndex);
-        }
-    }
 
     public void buildMove(GlobalValues params, Action action) {
         if(action.isUsed())return;
@@ -131,8 +58,8 @@ public class MoveService {
         switch (suffix){
             case 1:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader1(params);break;
             case 2:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader2(params);break;
-            case 3:targetPos = action.getTarget()!=null?action.getTarget():params.getSessionData().isMass()?this.byLeader3(params):quick(params,tank,currPos,1);break;
-            case 4:targetPos = action.getTarget()!=null?action.getTarget():params.getSessionData().isMass()?this.byLeader4(params):quick(params,tank,currPos,-1);break;
+            case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
+            case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
             case 5:targetPos = action.getTarget()!=null?action.getTarget():buildConflict(this.byLeader5(params),params,tank);break;
         }
 

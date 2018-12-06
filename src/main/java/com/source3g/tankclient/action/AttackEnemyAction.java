@@ -2,13 +2,16 @@ package com.source3g.tankclient.action;
 
 import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.AttackService;
+import com.source3g.tankclient.service.LeaderService;
 import com.source3g.tankclient.service.MapService;
 import com.source3g.tankclient.service.MoveService;
+import com.source3g.tankclient.utils.AStar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,8 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
     private AttackService attackService;
     @Autowired
     private MoveService moveService;
+    @Autowired
+    private LeaderService leaderService;
 
     @Override
     public NodeType process(GlobalValues params, List<Action> actions) {
@@ -38,11 +43,13 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         Integer currShengmin = params.getCurrTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
         Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
 
+        List<Position> enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
+        if(enemyPosList.isEmpty())return NodeType.Failure;
 
         for (Action action : actions){
             if (action.isUsed())continue;
 
-            List<Position> enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
+            enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
 
             if(enemyPosList.isEmpty()){
                 return NodeType.Failure;
@@ -89,15 +96,52 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
                 continue;
             }
 
-            //获得集结点
-            Position massPos = buildMassPos(params,enemyPosList);
-            moveService.buildLeader(params,actions,massPos);
-            action.setTarget(massPos);
-            //向敌方靠近
-            moveService.buildMove(params,action);
+            System.out.println();
+        }
+
+        enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
+
+
+        if(!enemyPosList.isEmpty()){
+
+            //获得攻击目标
+            Position targetPos = buildMassPos(params,enemyPosList);
+            if (targetPos == null)return NodeType.Failure;
+            //根据攻击目标，获得下一步的集结点
+            Position rallyPointPos = buildRallyPoint(params,targetPos);
+            leaderService.buildLeader(params,actions,rallyPointPos);
         }
 
         return NodeType.Success;
+    }
+
+    @SuppressWarnings("Duplicates")
+    private Position buildRallyPoint(GlobalValues params, Position target) {
+        //计算敌方的攻击范围，在范围外找一个集结点
+
+        TMap view = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
+        AStar aStar = new AStar(view);
+        Position currPos = params.getSessionData().getLeader().getPos();
+        for(int i=1;i<4;i++){
+            int startR = target.getRowIndex()-i;
+            int endR = target.getRowIndex()+i;
+            int startC = target.getColIndex()-i;
+            int endC = target.getColIndex()+i;
+            List<Position> m1List = mapService.findByMapEnum(view,startR,endR,startC,endC,MapEnum.M1);
+            if (m1List.isEmpty())continue;
+
+            List<DiffPosition> diffPos = m1List.stream().map(item->{
+                DiffPosition diffPosition = new DiffPosition();
+                diffPosition.setPos(item);
+                diffPosition.setDiff(aStar.countStep(currPos,item));
+                return diffPosition;
+            }).collect(Collectors.toList());
+
+            DiffPosition minDiffPos = diffPos.stream().min(Comparator.comparing(DiffPosition::getDiff)).get();
+
+            return minDiffPos.getPos();
+        }
+        return null;
     }
 
     /**
@@ -136,11 +180,13 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         return true;
     }
 
-    //寻找落单的
+    //寻找落单的-周围半径1以上的落单者，倒序
     private Position buildMassPos(GlobalValues params, List<Position> enemyPosList) {
         int scope = params.getView().getRowLen()/2;
         MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
-        for(int i=scope;i>=0;i--){
+
+        Position target = null;
+        for(int i=scope;i>=1;i--){
             for(Position currPos : enemyPosList){
                 int startR = currPos.getRowIndex()-i;
                 int endR = currPos.getRowIndex()+i;
@@ -149,12 +195,15 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
 
                 List<Position> enumsResut = mapService.findByMapEnum(params.getView(),startR,endR,startC,endC,enums);
                 if(enumsResut.size() == 1){
-                    return currPos;
+                    target = currPos;
+                    break;
                 }
             }
+            if(target != null)break;
         }
 
-        return enemyPosList.get(0);
+        return target;
+
     }
 
 

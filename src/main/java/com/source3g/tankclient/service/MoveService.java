@@ -104,14 +104,14 @@ public class MoveService {
         int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
         int colDiff = finalPos.getColIndex() - currPos.getColIndex();
 
-        if(colDiff < 0 && rowDiff >0){//第一象线
+        if(colDiff < 0 && rowDiff >=0){//第一象线
             rowIndex -= 1;
-        }else if(colDiff >0 && rowDiff >0){ //二象线
+        }else if(colDiff >=0 && rowDiff >=0){ //二象线
             rowIndex -= 1;
-        }else if(colDiff >0 && rowDiff <0){ //三象线
-            rowIndex +=1;
+        }else if(colDiff >=0 && rowDiff <0){ //三象线
+            rowIndex += 1;
         }else if(colDiff <0 && rowDiff <0){ //四象线
-            rowIndex +=1;
+            rowIndex += 1;
         }
         return new Position(rowIndex,colIndex);
     }
@@ -142,11 +142,11 @@ public class MoveService {
         int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
         int colDiff = finalPos.getColIndex() - currPos.getColIndex();
 
-        if(colDiff < 0 && rowDiff >0){//第一象线
+        if(colDiff < 0 && rowDiff >=0){//第一象线
             colIndex += 1;
-        }else if(colDiff >0 && rowDiff >0){ //二象线
+        }else if(colDiff >=0 && rowDiff >=0){ //二象线
             colIndex -= 1;
-        }else if(colDiff >0 && rowDiff <0){ //三象线
+        }else if(colDiff >=0 && rowDiff <0){ //三象线
             colIndex -= 1;
         }else if(colDiff <0 && rowDiff <0){ //四象线
             colIndex += 1;

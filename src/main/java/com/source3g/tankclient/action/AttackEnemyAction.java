@@ -64,7 +64,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
             Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
 
 
-            //会被敌方攻击到，撤退
+            //会被敌方攻击到，并且打不过，撤退
             if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
                 List<DiffPosition> beAttackeds = attackService.beAttacked(params,tank,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
                 if(!beAttackeds.isEmpty()){
@@ -72,7 +72,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
                         continue;
                     }else if(beAttackeds.size() == 1){
                         int diffCurr = beAttackeds.get(0).getTank().getShengyushengming()/tank.getGongji();
-                        int diffEnemy = tank.getShengming()/beAttackeds.get(0).getTank().getGongji();
+                        int diffEnemy = tank.getShengyushengming()/beAttackeds.get(0).getTank().getGongji();
                         List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getTank(),params.getCurrTeam().getTanks());
 
                         if(diffPos.size() == 1 && diffCurr > diffEnemy && retreat(params,action,params.getEnemyTeam().getTanks(),tank,currPos)){

@@ -106,6 +106,7 @@ public class LeaderService {
             if(step <= 1){
                 continue;
             }
+            action.setTarget(itemTagetPos);
             flag = false;
         }
 

@@ -100,26 +100,75 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
 
         enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
 
-
         if(!enemyPosList.isEmpty()){
-
             //获得攻击目标
             Position finalPos = buildMassPos(params,enemyPosList);
             if (finalPos == null)return NodeType.Failure;
             //根据攻击目标，获得下一步的集结点
             Position rallyPointPos = buildRallyPoint(params,finalPos);
-            params.getSessionData().getLeader().setFinalPos(finalPos);
-            leaderService.buildLeader(params,actions,rallyPointPos);
+
+            if(rallyPointPos != null){
+                //满足强攻条件
+                if (rallyPointPos.equals(params.getSessionData().getLeader().getCurrPos())){
+                    buildEnforcement(params,actions,finalPos);
+                }else{
+                    params.getSessionData().getLeader().setFinalPos(finalPos);
+                    leaderService.buildLeader(params,actions,rallyPointPos);
+                }
+            }
+
         }
 
         return NodeType.Success;
+    }
+
+    private void buildEnforcement(GlobalValues params, List<Action> actions,Position finalPos) {
+        for (Action action : actions) {
+            if (action.isUsed()) continue;
+
+            Position currPos = mapService.getPosition(params.getView(),action.getTId());
+            Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
+
+            int len = tank.getShecheng();
+
+            List<Position> ableAttPos = new ArrayList<>();
+            for(int i=len ==1?len:2;i<=len;i++){
+                ableAttPos.addAll(Arrays.asList(
+                        new Position(finalPos.getRowIndex()-i,finalPos.getColIndex()),
+                        new Position(finalPos.getRowIndex(),finalPos.getColIndex()+i),
+                        new Position(finalPos.getRowIndex()+i,finalPos.getColIndex()),
+                        new Position(finalPos.getRowIndex(),finalPos.getColIndex()-i)
+                ));
+            }
+
+            DiffPosition nextPosDiff = ableAttPos.stream().filter(item->{
+                mapService.buildPosition(params,item);
+                String mId = params.getView().get(item.getRowIndex(),item.getColIndex());
+                return !mapService.isBlock(mId);
+            }).map(item->{
+                DiffPosition diffPosition = new DiffPosition();
+                diffPosition.setPos(item);
+                AStar aStar = new AStar(params.getView());
+                diffPosition.setDiff(aStar.countStep(currPos,item));
+                return diffPosition;
+            }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+
+            Position nextPos = nextPosDiff.getPos();
+            //没有下一步就不动
+            if(nextPos == null || nextPos.getParent() == null)return;
+
+            nextPos = mapService.getMaxNext(tank,currPos,nextPos);
+
+            //根据坐标，计算方位和步长
+            moveService.buildAction(params,action,currPos,nextPos);
+        }
     }
 
     @SuppressWarnings("Duplicates")
     private Position buildRallyPoint(GlobalValues params, Position target) {
         //计算敌方的攻击范围，在范围外找一个集结点
 
-        TMap view = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
+        TMap view = mapService.copyAttackLine(params);
 
         Position currPos = params.getSessionData().getLeader().getCurrPos();
         int scope = 1;
@@ -128,6 +177,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         int startC = target.getColIndex()-scope;
         int endC = target.getColIndex()+scope;
 
+        //集结成功
         boolean isTrue = currPos.getRowIndex()>=startR && currPos.getRowIndex()<=endR && currPos.getColIndex() >= startC && currPos.getColIndex() <= endC;
         if(isTrue){
             return currPos;

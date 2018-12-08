@@ -64,8 +64,8 @@ public class MoveService {
         switch (suffix){
             case 1:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader1(params);break;
             case 2:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader2(params);break;
-            //case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
-            //case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
+            case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
+            case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
             case 5:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader5(params);break;
         }
 
@@ -78,7 +78,7 @@ public class MoveService {
 
 
         //创建一个新视图避免走入弹路
-        TMap attackLineMap = mapService.copyAttackLine(params.getEnemyTeam().getTanks(),params.getView());
+        TMap attackLineMap = mapService.copyAttackLine(params);
         AStar aStar = new AStar(attackLineMap);
 
         //获取最大行进路线

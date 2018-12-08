@@ -80,7 +80,7 @@ public class LeaderService {
 
 
         //判断移动后队友是否能跟上，不能跟上就不动
-        boolean flag = true;
+        /*boolean flag = true;
         for(Action action : actions){
             int suffix = Integer.valueOf(action.getTId().substring(1,2));
 
@@ -113,7 +113,7 @@ public class LeaderService {
         if(!flag){
             params.getSessionData().getLeader().getCurrPos().setRowIndex(sourceRowIndex);
             params.getSessionData().getLeader().getCurrPos().setColIndex(sourceColIndex);
-        }
+        }*/
     }
 
 }

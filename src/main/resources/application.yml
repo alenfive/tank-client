@@ -8,7 +8,7 @@ spring:
     time-zone: GMT+8
 
 server:
-  port: 8081
+  port: 8082
 
 map:
   path: src/main/resources/maps

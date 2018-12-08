@@ -64,13 +64,13 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
         });
 
         //只复活生命差值最大的坦克
-        if(seconds>0 && seconds <=60){
+        if(seconds>60 && seconds <=120){
             Action action = actions.stream().filter(item2->item2.getTId().equals(loseMingSort.get(0).getTId())).findFirst().orElse(null);
             useGlod(params,action);
         }
 
         //最后十秒使用所有复活币-按生命差值的顺序
-        if(seconds <= 10){
+        if(seconds <= 60){
             loseMingSort.forEach(item1->{
                 Action action =  actions.stream().filter(item2->item2.getTId().equals(item1.getTId())).findFirst().orElse(null);
                 useGlod(params,action);

@@ -52,19 +52,9 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,List<Action>>
                 continue;
             }
 
-            targetPos = positions.get(0);
-
-            //制定路线
-            Position nextPos = formationService.random(params,tank,currPos,targetPos);
-            if(nextPos == null){
-                continue;
-            }
-
-            //根据坐标，计算方位和步长
-            moveService.buildAction(params,action,currPos,nextPos);
+            action.setTarget(positions.get(0));
+            moveService.buildMove(params,action);
         }
-
-
 
         return NodeType.Success;
     }

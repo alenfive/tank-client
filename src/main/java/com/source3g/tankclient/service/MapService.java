@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SuppressWarnings("Duplicates")
 @Service
@@ -247,14 +248,17 @@ public class MapService {
         targetPos.setColIndex(minDiffPos.getPos().getColIndex());
     }
 
-    public TMap copyAttackLine(List<Tank> tanks,TMap view) {
+    public TMap copyAttackLine(GlobalValues params) {
         try {
-            TMap result = objectMapper.readValue(objectMapper.writeValueAsString(view),TMap.class);
+            TMap result = objectMapper.readValue(objectMapper.writeValueAsString(params.getView()),TMap.class);
 
             //置灰敌方的攻击路线
-            tanks.forEach(item->{
+            params.getEnemyTeam().getTanks().forEach(item->{
+
                 Position itemPos = this.getPosition(result,item.getTId());
                 if(itemPos == null)return;
+
+
                 List<Position> attackLine = new ArrayList<>();
                 for(int i=1;i<=item.getShecheng();i++){
                     attackLine.addAll(Arrays.asList(
@@ -264,6 +268,14 @@ public class MapService {
                             new Position(itemPos.getRowIndex(),itemPos.getColIndex()-i)
                     ));
                 }
+                //当已方队员在该坦克的射程内时，该坦克无路线置灰效果
+                List<Position> currTeamsPos = params.getCurrTeamTId().stream().map(tId->this.getPosition(result,tId)).collect(Collectors.toList());
+                for(Position al : attackLine){
+                    if (currTeamsPos.contains(al)){
+                        return;
+                    }
+                }
+
                 attackLine.forEach(item2->{
                     boolean valid = item2.getRowIndex()>=0 && item2.getRowIndex()<result.getRowLen() && item2.getColIndex()>=0 && item2.getColIndex()<result.getColLen();
                     if (valid){
@@ -280,4 +292,5 @@ public class MapService {
         }
         return null;
     }
+
 }

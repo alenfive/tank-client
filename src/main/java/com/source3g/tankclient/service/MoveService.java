@@ -91,8 +91,8 @@ public class MoveService {
         if(beAttackeds.isEmpty())return null;
 
         if(beAttackeds.size() == 1){
-            int diffCurr = beAttackeds.get(0).getTank().getShengyushengming()/currTank.getGongji();
-            int diffEnemy = currTank.getShengyushengming()/beAttackeds.get(0).getTank().getGongji();
+            int diffCurr = (beAttackeds.get(0).getTank().getShengyushengming()+currTank.getGongji()-1)/currTank.getGongji();
+            int diffEnemy = (currTank.getShengyushengming()+beAttackeds.get(0).getTank().getGongji()-1)/beAttackeds.get(0).getTank().getGongji();
             List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getPos(),params.getCurrTeam().getTanks());
 
             if(diffPos.size() == 1 && diffCurr <= diffEnemy){ //1V1
@@ -149,7 +149,6 @@ public class MoveService {
 
     /**
      * 计算某坐标范围可移动的点
-     * @param attackPos
      * @param actionLen
      * @param currPos
      * @param diffR

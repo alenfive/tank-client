@@ -29,6 +29,14 @@ public class MapService {
             MapEnum.M2.name(),
             MapEnum.M3.name());
 
+
+    private final List<String> blockTrues = Arrays.asList(
+            MapEnum.M4.name(),
+            MapEnum.M5.name(),
+            MapEnum.M6.name(),
+            MapEnum.M7.name(),
+            MapEnum.M8.name());
+
     /**
      * 打印二维数据
      * @param view
@@ -199,6 +207,10 @@ public class MapService {
 
     public boolean isBlock(String mId) {
         return !blocks.contains(mId);
+    }
+
+    public boolean isBlockTrue(String mId){
+        return blockTrues.contains(mId);
     }
 
     /**

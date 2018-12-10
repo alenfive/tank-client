@@ -60,7 +60,7 @@ public class TankFiveService {
 
         //存在攻击目标-向站位靠近
         if (params.getAttackTarget() != null){
-            Position preTargetPos = attackService.buildPrepareAttackPos(params,params.getAttackTarget(),currTank,currPos);
+            Position preTargetPos = buildPrepareAttackPos(params,params.getAttackTarget(),currTank,currPos);
             if (preTargetPos != null){
                 moveService.buildMove(params,action,currTank,currPos,preTargetPos,true);
                 return;
@@ -79,7 +79,59 @@ public class TankFiveService {
     }
 
 
+    /**
+     * 构建攻击前的站位
+     * @param params
+     * @param attackTarget
+     * @param currTank
+     * @param currPos
+     */
+    public Position buildPrepareAttackPos(GlobalValues params, TankPosition attackTarget, Tank currTank, Position currPos) {
 
+        //如果有已方一个以上的其他队友锁定了这个敌人，那么攻击前的站位应该是可攻击位置
+        List<DiffPosition> diffPos = attackService.beAttacked(params,attackTarget.getPos(),params.getCurrTeam().getTanks());
+        diffPos = diffPos.stream().filter(item->!item.getTank().getTId().equals(currTank.getTId())).collect(Collectors.toList());
+        if (diffPos.size() > 0){
+
+            //可以攻击到目录的站位，优先从远到近
+            List<Position> ableAttackPos = new ArrayList<>();
+            ableAttackPos.addAll(attackService.buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),-1,0));
+            ableAttackPos.addAll(attackService.buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),0,1));
+            ableAttackPos.addAll(attackService.buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),1,0));
+            ableAttackPos.addAll(attackService.buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),0,-1));
+
+            TMap view = mapService.copyAttackLine(params,attackTarget.getTank().getTId());
+
+            DiffPosition finalPos = ableAttackPos.stream().map(item->{
+                AStar aStar = new AStar(view);
+                int diff = aStar.countStep(currPos,item);
+                return DiffPosition.builder().pos(item).diff(diff).build();
+            }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+
+            return finalPos == null?null:finalPos.getPos();
+        }
+
+
+        //可以攻击到目录的站位，优先从远到近-站在敌方的攻击范围外
+        List<Position> ableAttackPos = new ArrayList<>();
+        ableAttackPos.addAll(attackService.buildAbleAttackPos(params,attackTarget.getTank().getShecheng()+1,attackTarget.getPos(),-1,0));
+        ableAttackPos.addAll(attackService.buildAbleAttackPos(params,attackTarget.getTank().getShecheng()+1,attackTarget.getPos(),0,1));
+        ableAttackPos.addAll(attackService.buildAbleAttackPos(params,attackTarget.getTank().getShecheng()+1,attackTarget.getPos(),1,0));
+        ableAttackPos.addAll(attackService.buildAbleAttackPos(params,attackTarget.getTank().getShecheng()+1,attackTarget.getPos(),0,-1));
+
+        //移除敌方的弹道范围
+        ableAttackPos.removeAll(attackService.enemyAttackPosList(params));
+
+        TMap view = mapService.copyAttackLine(params);
+
+        DiffPosition finalPos = ableAttackPos.stream().map(item->{
+            AStar aStar = new AStar(view);
+            int diff = aStar.countStep(currPos,item);
+            return DiffPosition.builder().pos(item).diff(diff).build();
+        }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+
+        return finalPos == null?null:finalPos.getPos();
+    }
 
 
 }

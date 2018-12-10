@@ -24,7 +24,7 @@ public class AttackService {
     private final List<String> tIdSorted = Arrays.asList("A1","C1","B1","C3","B3","C4","B4","C5","B5","C2","B2");
 
     /**
-     * 计算能攻击到某坐标的敌方坦克
+     * 计算能攻击到某坐标的坦克
      * @param params
      * @param currPos
      * @param enemyTanks
@@ -36,17 +36,22 @@ public class AttackService {
         if (currPos == null)return result;
 
         for(Tank enemyTank : enemyTanks){
+            List<Position> attackPos = new ArrayList<>();
+
 
             Position enemyPos = mapService.getPosition(params.getView(),enemyTank.getTId());
             if(enemyPos == null)continue;
+            attackPos.add(enemyPos);
 
-            int diff = Math.abs(enemyPos.getRowIndex()-currPos.getRowIndex())+Math.abs(enemyPos.getColIndex()-currPos.getColIndex());
-            boolean ableAttack = (currPos.getRowIndex()==enemyPos.getRowIndex() || currPos.getColIndex() == enemyPos.getColIndex()) && diff<=enemyTank.getShecheng();
-            if(ableAttack){
+            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,-1,0));
+            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,0,1));
+            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,1,0));
+            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,0,-1));
+
+            if(attackPos.contains(currPos)){
                 result.add(DiffPosition.builder()
                         .pos(enemyPos)
                         .tank(enemyTank)
-                        .diff(diff)
                         .build());
             }
 
@@ -61,15 +66,15 @@ public class AttackService {
      */
     public List<Position> enemyAttackPosList(GlobalValues params){
         List<Position> attackPos = new ArrayList<>();
-        for(Tank enemyTank : params.getEnemyTeam().getTanks()){
-            Position enemyPos = mapService.getPosition(params.getView(),enemyTank.getTId());
-            if(enemyPos == null)continue;
-            attackPos.add(enemyPos);
+        for(Tank tank : params.getEnemyTeam().getTanks()){
+            Position tankPos = mapService.getPosition(params.getView(),tank.getTId());
+            if(tankPos == null)continue;
+            attackPos.add(tankPos);
 
-            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,-1,0));
-            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,0,1));
-            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,1,0));
-            attackPos.addAll(buildAbleFirePos(params,enemyTank.getShecheng(),enemyPos,0,-1));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,-1,0));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,0,1));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,1,0));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,0,-1));
 
         }
 
@@ -94,7 +99,7 @@ public class AttackService {
             }
 
             String mId = params.getView().get(itemPos.getRowIndex(),itemPos.getColIndex());
-            if (params.getBossTeam().getTanks().get(0).getTId().equals(mId) || params.getEnemyTeamTId().contains(mId) || !mapService.isBlock(mId) || params.getCurrTeamTId().contains(mId)){
+            if (params.getEnemyTeamTId().contains(mId) || !mapService.isBlock(mId) || params.getCurrTeamTId().contains(mId)){
                 leavePos.add(itemPos);
                 continue;
             }
@@ -141,6 +146,36 @@ public class AttackService {
     }
 
     /**
+     * 计算通过攻击到某个位置的空闲坐标
+     * @param params
+     * @param actionLen
+     * @param currPos
+     * @param diffR
+     * @param diffC
+     * @return
+     */
+    public List<Position> buildAbleAttackPos(GlobalValues params,int actionLen,Position currPos,int diffR,int diffC){
+        List<Position> result = new ArrayList<>();
+        for(int i=1;i<=actionLen;i++){
+            Position itemPos = new Position(currPos.getRowIndex()+i*diffR,currPos.getColIndex()+i*diffC);
+
+            if(!mapService.isPosition(params.getView(),itemPos)){
+                break;
+            }
+
+            String mId = params.getView().get(itemPos.getRowIndex(),itemPos.getColIndex());
+            if(mapService.isBlockTrue(mId)){
+                break;
+            }
+            if(params.getBossTeam().getTanks().get(0).getTId().equals(mId) || params.getEnemyTeamTId().contains(mId) || params.getCurrTeamTId().contains(mId)){
+                continue;
+            }
+            result.add(itemPos);
+        }
+        return result;
+    }
+
+    /**
      * 构建攻击前的站位
      * @param params
      * @param attackTarget
@@ -151,11 +186,24 @@ public class AttackService {
 
         //如果有已方一个以上的其他队友锁定了这个敌人，那么攻击前的站位应该是可攻击位置
         List<DiffPosition> diffPos = this.beAttacked(params,attackTarget.getPos(),params.getCurrTeam().getTanks());
-        if (diffPos.size() > 1){
+        diffPos = diffPos.stream().filter(item->!item.getTank().getTId().equals(currTank.getTId())).collect(Collectors.toList());
+        if (diffPos.size() > 0){
 
+            //可以攻击到目录的站位，优先从远到近
+            List<Position> ableAttackPos = new ArrayList<>();
+            ableAttackPos.addAll(buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),-1,0));
+            ableAttackPos.addAll(buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),0,1));
+            ableAttackPos.addAll(buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),1,0));
+            ableAttackPos.addAll(buildAbleAttackPos(params,currTank.getShecheng(),attackTarget.getPos(),0,-1));
 
+            TMap view = mapService.copyAttackLine(params,attackTarget.getTank().getTId());
 
-            return null;
+            DiffPosition finalPos = ableAttackPos.stream().map(item->{
+                AStar aStar = new AStar(view);
+                int diff = aStar.countStep(currPos,item);
+                return DiffPosition.builder().pos(item).diff(diff).build();
+            }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
+            return finalPos == null?null:finalPos.getPos();
         }
 
         Position enemyPos = attackTarget.getPos();
@@ -299,7 +347,7 @@ public class AttackService {
         MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
 
         TankPosition target = null;
-        for(int i=scope;i>=1;i--){
+        for(int i=scope;i>=0;i--){
             for(TankPosition currPos : enemyPosList){
                 int startR = currPos.getPos().getRowIndex()-i;
                 int endR = currPos.getPos().getRowIndex()+i;
@@ -330,15 +378,34 @@ public class AttackService {
         Position targetPos = bossPosList.get(0);
 
         List<Position> ableFirePos = new ArrayList<>();
-        ableFirePos.addAll(buildAbleFirePos(params,currTank.getShecheng(),currPos,-1,0));
-        ableFirePos.addAll(buildAbleFirePos(params,currTank.getShecheng(),currPos,0,1));
-        ableFirePos.addAll(buildAbleFirePos(params,currTank.getShecheng(),currPos,1,0));
-        ableFirePos.addAll(buildAbleFirePos(params,currTank.getShecheng(),currPos,0,-1));
+        ableFirePos.addAll(buildBossAbleFirePos(params,currTank.getShecheng(),currPos,-1,0));
+        ableFirePos.addAll(buildBossAbleFirePos(params,currTank.getShecheng(),currPos,0,1));
+        ableFirePos.addAll(buildBossAbleFirePos(params,currTank.getShecheng(),currPos,1,0));
+        ableFirePos.addAll(buildBossAbleFirePos(params,currTank.getShecheng(),currPos,0,-1));
 
         //未在弹道内
         if (!ableFirePos.contains(targetPos))return null;
 
         return TankPosition.builder().tank(params.getBossTeam().getTanks().get(0)).pos(targetPos).build();
 
+    }
+
+    private List<Position> buildBossAbleFirePos(GlobalValues params, int actionLen, Position currPos, int diffR, int diffC){
+        List<Position> leavePos = new ArrayList<>();
+        for(int i=1;i<=actionLen;i++){
+            Position itemPos = new Position(currPos.getRowIndex()+i*diffR,currPos.getColIndex()+i*diffC);
+
+            if(!mapService.isPosition(params.getView(),itemPos)){
+                break;
+            }
+
+            String mId = params.getView().get(itemPos.getRowIndex(),itemPos.getColIndex());
+            if (params.getBossTeam().getTanks().get(0).getTId().equals(mId) || params.getEnemyTeamTId().contains(mId) || !mapService.isBlock(mId) || params.getCurrTeamTId().contains(mId)){
+                leavePos.add(itemPos);
+                continue;
+            }
+            break;
+        }
+        return leavePos;
     }
 }

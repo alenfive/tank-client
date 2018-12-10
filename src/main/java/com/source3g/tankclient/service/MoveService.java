@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 移动
@@ -18,6 +20,8 @@ public class MoveService {
     @Autowired
     private MapService mapService;
 
+    @Autowired
+    private AttackService attackService;
 
 
     public void buildAction(GlobalValues params,Action action, Position currPos, Position nextPos) {
@@ -51,125 +55,194 @@ public class MoveService {
         return positions.get(0);
     }
 
+    //队友位置
+    public Position buildCurrTeamPos(GlobalValues params, Tank tank) {
+        Tank tank1 = params.getCurrTeam().getTanks().stream().filter(item->!item.getTId().equals(tank.getTId()) && item.getShengyushengming()>0).findFirst().orElse(null);
+        if (tank1 == null)return null;
+        return mapService.getPosition(params.getView(),tank1.getTId());
+    }
 
+    /**
+     * 是否在敌方弹道上，构建逃离坐标
+     * @param params
+     * @param currTank
+     * @param currPos
+     * @return
+     */
+    public Position buildLeave(GlobalValues params, Tank currTank, Position currPos) {
 
-    public void buildMove(GlobalValues params, Action action) {
-        if(action.isUsed())return;
+        List<Position> attackPos = attackService.enemyAttackPosList(params);
 
-        int suffix = Integer.valueOf(action.getTId().substring(1,2));
-        Position currPos = mapService.getPosition(params.getView(),action.getTId());
-        Tank tank = params.currTeam.getTanks().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().orElse(null);
-
-        Position targetPos = null;
-        switch (suffix){
-            case 1:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader1(params);break;
-            case 2:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader2(params);break;
-            case 3:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,1);break;
-            case 4:targetPos = action.getTarget()!=null?action.getTarget():quick(params,tank,currPos,-1);break;
-            case 5:targetPos = action.getTarget()!=null?action.getTarget():this.byLeader5(params);break;
+        //未在敌方射程内
+        if (!attackPos.contains(currPos)){
+            return null;
         }
 
-        //如果为空或为自己
-        if (targetPos == null || (currPos.getRowIndex() == targetPos.getRowIndex() && currPos.getColIndex() == targetPos.getColIndex()))return;
+        Integer currShengmin = params.getCurrTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
+        Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
+
+        //会被敌方攻击到，并且打不过，撤退
+        if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
+            List<DiffPosition> beAttackeds = attackService.beAttacked(params,currPos,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
+
+            if(beAttackeds.isEmpty())return null;
+
+            if(beAttackeds.size() == 1){
+                int diffCurr = beAttackeds.get(0).getTank().getShengyushengming()/currTank.getGongji();
+                int diffEnemy = currTank.getShengyushengming()/beAttackeds.get(0).getTank().getGongji();
+                List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getPos(),params.getCurrTeam().getTanks());
+
+                if(diffPos.size() == 1 && diffCurr <= diffEnemy){ //1V1
+                    return null;
+                }else if(diffPos.size() > 1){ //被我方二个及以上坦克锁定不撤退
+                    return null;
+                }
+                //将要被我方二个及以上锁定时不撤退
+
+            }
+        }
+
+        return buildLeavePos(params,currTank,currPos);
+
+    }
+
+    private Position buildLeavePos(GlobalValues params,Tank currTank,Position currPos){
+        //搜索逃离点
+        List<Position> movePos = new ArrayList<>();
+        movePos.add(currPos);
+        //top
+        movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,-1,0));
+        //right
+        movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,0,1));
+        //bottom
+        movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,1,0));
+        //left
+        movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,0,-1));
+
+        if(movePos.isEmpty()){
+            return null;
+        }
+
+        List<DiffPosition> leavePos = movePos.stream().map(item->{
+            List<DiffPosition> diffAll = attackService.beAttacked(params,item,params.getEnemyTeam().getTanks());
+            int diff = diffAll.stream().mapToInt(item2->item2.getTank().getGongji()).sum();
+            return DiffPosition.builder().diff(diff).pos(item).build();
+        }).sorted(Comparator.comparing(DiffPosition::getDiff)).collect(Collectors.toList());
+
+        //这个坐标不会承受伤害，直接返回
+        if(leavePos.get(0).getDiff() == 0){
+            return leavePos.get(0).getPos();
+        }
+
+        //找一个可以攻击的位置
+        for(DiffPosition diffPos : leavePos){
+            TankPosition tp = attackService.ableAttackTop(params,currTank,diffPos.getPos());
+            if (tp != null){
+                return diffPos.getPos();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 计算某坐标范围可移动的点
+     * @param attackPos
+     * @param actionLen
+     * @param currPos
+     * @param diffR
+     * @param diffC
+     * @return
+     */
+    private List<Position> buildAbleMovePos(TMap view, int actionLen, Position currPos, int diffR, int diffC){
+        List<Position> movePos = new ArrayList<>();
+        for(int i=1;i<=actionLen;i++){
+            Position itemPos = new Position(currPos.getRowIndex()+i*diffR,currPos.getColIndex()+i*diffC);
+            if (!mapService.isPosition(view,itemPos)){
+                break;
+            }
+            String mId = view.get(itemPos.getRowIndex(),itemPos.getColIndex());
+            if (mapService.isBlock(mId)){
+                break;
+            }
+            movePos.add(itemPos);
+        }
+
+        return movePos;
+    }
+
+    public void buildMove(GlobalValues params, Action action,Tank currTank,Position currPos,Position targetPos,boolean attackLine) {
+        if(action.isUsed())return;
+
+        if (targetPos == null)return;
 
         //找个空白点用于定位
         mapService.buildBlank(params,currPos,targetPos);
 
+        if(currTank.getYidong() == 1){
+            //创建一个新视图避免走入弹路
+            TMap view = attackLine?mapService.copyAttackLine(params):params.getView();
+            AStar aStar = new AStar(view);
 
+            //获取最大行进路线
+            Position nextPos = aStar.findPath(currPos,targetPos);
 
-        //创建一个新视图避免走入弹路
-        TMap attackLineMap = mapService.copyAttackLine(params);
-        AStar aStar = new AStar(attackLineMap);
+            //没有下一步就不动
+            if(nextPos == null || nextPos.getParent() == null)return;
 
-        //获取最大行进路线
-        Position nextPos = aStar.findPath(currPos,targetPos);
+            //根据坐标，计算方位和步长
+            this.buildAction(params,action,currPos,nextPos.getParent());
+            return;
+        }else if(currTank.getYidong() == 2){
+            AStar aStar = new AStar(params.getView());
+            //获取最大行进路线
+            Position nextPos = aStar.findPath(currPos,targetPos);
 
-        //没有下一步就不动
-        if(nextPos == null || nextPos.getParent() == null)return;
+            //没有下一步就不动
+            if(nextPos == null || nextPos.getParent() == null)return;
+            List<Position> attackLinePos = attackService.enemyAttackPosList(params);
+            Position next1 = nextPos.getParent();
+            Position next2 = nextPos.getParent().getParent();
+            Position finalPos = next1;
+            if(next2 != null && (next1.getRowIndex() == next2.getRowIndex() || next1.getColIndex() == next2.getColIndex()) && !attackLinePos.contains(next2)){
+                finalPos = next2;
+            }
 
-        nextPos = mapService.getMaxNext(tank,currPos,nextPos);
+            if (attackLinePos.contains(finalPos)){
 
-        //根据坐标，计算方位和步长
-        this.buildAction(params,action,currPos,nextPos);
-    }
+            }
 
-    public Position byLeader5(GlobalValues params) {
-        Leader leader = params.getSessionData().getLeader();
-        Position currPos = leader.getCurrPos();
-        Position finalPos = leader.getFinalPos();
-
-        int rowIndex = currPos.getRowIndex();
-        int colIndex = currPos.getColIndex();
-
-        int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
-        int colDiff = finalPos.getColIndex() - currPos.getColIndex();
-
-        if(colDiff < 0 && rowDiff >=0){//第一象线
-            rowIndex -= 1;
-        }else if(colDiff >=0 && rowDiff >=0){ //二象线
-            rowIndex -= 1;
-        }else if(colDiff >=0 && rowDiff <0){ //三象线
-            rowIndex += 1;
-        }else if(colDiff <0 && rowDiff <0){ //四象线
-            rowIndex += 1;
-        }
-        return new Position(rowIndex,colIndex);
-    }
-
-    public Position byLeader4(GlobalValues params,Position finalPos) {
-        return null;
-    }
-
-    public Position byLeader3(GlobalValues params) {
-        return null;
-    }
-
-    public Position byLeader2(GlobalValues params) {
-        Leader leader = params.getSessionData().getLeader();
-        int rowIndex = leader.getCurrPos().getRowIndex();
-        int colIndex = leader.getCurrPos().getColIndex();
-        return new Position(rowIndex,colIndex);
-    }
-
-    public Position byLeader1(GlobalValues params) {
-        Leader leader = params.getSessionData().getLeader();
-        Position currPos = leader.getCurrPos();
-        Position finalPos = leader.getFinalPos();
-
-        int rowIndex = currPos.getRowIndex();
-        int colIndex = currPos.getColIndex();
-
-        int rowDiff = finalPos.getRowIndex() - currPos.getRowIndex();
-        int colDiff = finalPos.getColIndex() - currPos.getColIndex();
-
-        if(colDiff < 0 && rowDiff >=0){//第一象线
-            colIndex += 1;
-        }else if(colDiff >=0 && rowDiff >=0){ //二象线
-            colIndex -= 1;
-        }else if(colDiff >=0 && rowDiff <0){ //三象线
-            colIndex -= 1;
-        }else if(colDiff <0 && rowDiff <0){ //四象线
-            colIndex += 1;
         }
 
-        return new Position(rowIndex,colIndex);
     }
+
 
     /**
      * 移动快的
      * @param params
      * @param tank
      */
-    private Position quick(GlobalValues params, Tank tank,Position currPos,int scope) {
-
-        List<Position> regions = buildRegions(tank,params.getView(),scope);
-
+    public Position scanMapNextPosition(GlobalValues params, Tank tank, int scope) {
+        TMap view = mapService.copyAttackLine(params);
+        List<Position> regions = buildRegions(tank,view,scope);
         Position targetPos = null;
         for(Position position : regions){
-            Position finalPosition = findM3Position(position,params.getView(),tank);
+            Position finalPosition = findM3Position(position,view,tank);
             if(finalPosition != null){
                 targetPos = finalPosition;
                 break;
+            }
+        }
+
+        //标记点完以后搜索剩下的
+        if(targetPos == null){
+            int centerRow = params.getView().getRowLen()/2;
+            int startRow = scope>0?centerRow:0;
+            int endRow = scope>0?params.getView().getRowLen()-1:centerRow-1;
+
+            List<Position> m3Pos = mapService.findByMapEnum(view,startRow,endRow,0,params.getView().getColLen()-1,MapEnum.M3);
+            if(!m3Pos.isEmpty()){
+                return m3Pos.get(0);
             }
         }
 
@@ -274,7 +347,6 @@ public class MoveService {
         regions.forEach(item->{
             buildPosition(item,view,tank);
         });
-
         return regions;
     }
 

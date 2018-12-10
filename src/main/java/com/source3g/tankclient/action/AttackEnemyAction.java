@@ -35,7 +35,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
     public NodeType process(GlobalValues params, List<Action> actions) {
 
         //发现敌方坦克
-        TMap view = params.getView();
+        /*TMap view = params.getView();
         TeamDetail enemyTeam = params.getEnemyTeam();
         MapEnum[] enemyMaps = enemyTeam.getTanks().stream().map(item->MapEnum.valueOf(item.getTId())).toArray(MapEnum[]::new);
 
@@ -83,12 +83,12 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
 
                     }
                 }
-            }
+            }*/
 
 
 
             //可攻击的坦克
-            Position targetPos = attackService.ableAttackTop(view, tank,currPos,enemyPosList,params.getEnemyTeam());
+            /*Position targetPos = attackService.ableAttackTop(view, tank,currPos,enemyPosList,params.getEnemyTeam());
             if(targetPos != null){
                 String tId = view.getMap().get(targetPos.getRowIndex()).get(targetPos.getColIndex());
                 Tank targetTank = enemyTeam.getTanks().stream().filter(item->item.getTId().equals(tId)).findFirst().orElse(null);
@@ -98,28 +98,11 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
 
         }
 
-        enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
+       enemyPosList = mapService.findByMapEnum(view,0,view.getRowLen()-1,0,view.getColLen()-1,enemyMaps);
 
-        if(!enemyPosList.isEmpty()){
-            //获得攻击目标
-            Position finalPos = buildMassPos(params,enemyPosList);
-            if (finalPos == null)return NodeType.Failure;
-            //根据攻击目标，获得下一步的集结点
-            Position rallyPointPos = buildRallyPoint(params,finalPos);
 
-            if(rallyPointPos != null){
-                //满足强攻条件
-                if (rallyPointPos.equals(params.getSessionData().getLeader().getCurrPos())){
-                    buildEnforcement(params,actions,finalPos);
-                }else{
-                    params.getSessionData().getLeader().setFinalPos(finalPos);
-                    leaderService.buildLeader(params,actions,rallyPointPos);
-                }
-            }
-
-        }
-
-        return NodeType.Success;
+        return NodeType.Success;*/
+       return null;
     }
 
     private void buildEnforcement(GlobalValues params, List<Action> actions,Position finalPos) {
@@ -165,45 +148,6 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
     }
 
     @SuppressWarnings("Duplicates")
-    private Position buildRallyPoint(GlobalValues params, Position target) {
-        //计算敌方的攻击范围，在范围外找一个集结点
-
-        TMap view = mapService.copyAttackLine(params);
-
-        Position currPos = params.getSessionData().getLeader().getCurrPos();
-        int scope = 1;
-        int startR = target.getRowIndex()-scope;
-        int endR = target.getRowIndex()+scope;
-        int startC = target.getColIndex()-scope;
-        int endC = target.getColIndex()+scope;
-
-        //集结成功
-        boolean isTrue = currPos.getRowIndex()>=startR && currPos.getRowIndex()<=endR && currPos.getColIndex() >= startC && currPos.getColIndex() <= endC;
-        if(isTrue){
-            return currPos;
-        }
-
-        List<Position> m1List = mapService.findByMapEnum(view,startR,endR,startC,endC,MapEnum.M1);
-        if (m1List.isEmpty())return currPos;
-
-        List<DiffPosition> diffPos = m1List.stream().map(item->{
-            DiffPosition diffPosition = new DiffPosition();
-            diffPosition.setPos(item);
-            AStar aStar = new AStar(view);
-            aStar.appendBlockList(params.getCurrTeamTId());
-            diffPosition.setDiff(aStar.countStep(currPos,item));
-            return diffPosition;
-        }).collect(Collectors.toList());
-
-        //最近点
-        DiffPosition minDiffPos = diffPos.stream().min(Comparator.comparing(DiffPosition::getDiff)).get();
-
-        AStar aStar = new AStar(view);
-        aStar.appendBlockList(params.getCurrTeamTId());
-        aStar.findPath(currPos,minDiffPos.getPos());
-        return currPos.getParent();
-
-    }
 
     /**
      * 撤退

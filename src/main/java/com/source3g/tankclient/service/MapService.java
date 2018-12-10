@@ -21,6 +21,9 @@ public class MapService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private AttackService attackService;
+
     private final List<String> blocks = Arrays.asList(
             MapEnum.M1.name(),
             MapEnum.M2.name(),
@@ -225,10 +228,13 @@ public class MapService {
                 new Position(targetPos.getRowIndex(),targetPos.getColIndex()-1)
         );
 
+        List<Position> attackPos = attackService.enemyAttackPosList(params);
+
+        //非障碍物并且非敌方弹道
         ablePos.forEach(item->buildPosition(params,item));
         ablePos = ablePos.stream().filter(item->{
             String itemMId = params.getView().get(item.getRowIndex(),item.getColIndex());
-            return !this.isBlock(itemMId) ;
+            return !this.isBlock(itemMId) && !attackPos.contains(item) ;
         }).collect(Collectors.toList());
 
 
@@ -248,44 +254,30 @@ public class MapService {
         targetPos.setColIndex(minDiffPos.getPos().getColIndex());
     }
 
-    public TMap copyAttackLine(GlobalValues params) {
+    public TMap copyAttackLine(GlobalValues params,String ... excludeTankIds) {
         try {
+            List<String> excludeTankIdList = Arrays.asList(excludeTankIds);
             TMap result = objectMapper.readValue(objectMapper.writeValueAsString(params.getView()),TMap.class);
 
             //置灰敌方的攻击路线
-            params.getEnemyTeam().getTanks().forEach(item->{
+            params.getEnemyTeam().getTanks().stream().filter(item->!excludeTankIdList.contains(item.getTId())).forEach(item->{
 
                 Position itemPos = this.getPosition(result,item.getTId());
                 if(itemPos == null)return;
 
-
-                List<Position> attackLine = new ArrayList<>();
-                for(int i=1;i<=item.getShecheng();i++){
-                    attackLine.addAll(Arrays.asList(
-                            new Position(itemPos.getRowIndex()-i,itemPos.getColIndex()),
-                            new Position(itemPos.getRowIndex(),itemPos.getColIndex()+i),
-                            new Position(itemPos.getRowIndex()+i,itemPos.getColIndex()),
-                            new Position(itemPos.getRowIndex(),itemPos.getColIndex()-i)
-                    ));
-                }
-                //当已方队员在该坦克的射程内时，该坦克无路线置灰效果
-                List<Position> currTeamsPos = params.getCurrTeamTId().stream().map(tId->this.getPosition(result,tId)).collect(Collectors.toList());
-                for(Position al : attackLine){
-                    if (currTeamsPos.contains(al)){
-                        return;
-                    }
-                }
+                List<Position> attackLine = attackService.enemyAttackPosList(params);
 
                 attackLine.forEach(item2->{
-                    boolean valid = item2.getRowIndex()>=0 && item2.getRowIndex()<result.getRowLen() && item2.getColIndex()>=0 && item2.getColIndex()<result.getColLen();
-                    if (valid){
-                        String mId = result.get(item2.getRowIndex(),item2.getColIndex());
-                        if(MapEnum.M1.name().equals(mId)){
-                            result.getMap().get(item2.getRowIndex()).set(item2.getColIndex(),MapEnum.T1.name());
-                        }
+                    String mId = result.get(item2.getRowIndex(),item2.getColIndex());
+                    if(MapEnum.M1.name().equals(mId) || MapEnum.M3.name().equals(mId)){
+                        result.getMap().get(item2.getRowIndex()).set(item2.getColIndex(),MapEnum.T1.name());
                     }
                 });
             });
+
+
+            this.log(result);
+
             return result;
         } catch (IOException e) {
             e.printStackTrace();
@@ -293,4 +285,7 @@ public class MapService {
         return null;
     }
 
+    public boolean isPosition(TMap view,Position itemPos) {
+        return itemPos.getRowIndex()>=0 && itemPos.getRowIndex()<view.getRowLen() && itemPos.getColIndex()>=0 && itemPos.getColIndex()<view.getColLen();
+    }
 }

@@ -38,9 +38,10 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
         //如果死亡的坦克附近有敌人，并且战斗力完胜则复活
         params.getCurrTeam().getTanks().stream().filter(item->item.getShengyushengming() == 0).forEach(tank->{
             Action action = actions.stream().filter(item->item.getTId().equals(tank.getTId())).findFirst().orElse(null);
+            Position tankPos = mapService.getPosition(params.getView(),tank.getTId());
 
             //附近有队友
-            Position itemPos = params.getSessionData().getTankPositions().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().get().getPosition();
+            Position itemPos = params.getSessionData().getTankLastPosList().stream().filter(item->item.getTId().equals(action.getTId())).findFirst().get().getPos();
             List<Position> teammate = mapService.findByMapEnum(params.getView(),itemPos.getRowIndex()-1,itemPos.getRowIndex()+1,itemPos.getColIndex()-1,itemPos.getColIndex()+1,currEnums);
 
             if(!teammate.isEmpty()){
@@ -49,7 +50,7 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
             }
 
             //射程范围内可攻击的坐标
-            List<DiffPosition> beAttacked = attackService.beAttacked(params, tank,params.getEnemyTeam().getTanks());
+            List<DiffPosition> beAttacked = attackService.beAttacked(params, tankPos,params.getEnemyTeam().getTanks());
             if(beAttacked.size() == 1){
                 Position ableAttack = beAttacked.get(0).getPos();
                 String ableAttackTankId = params.getView().getMap().get(ableAttack.getRowIndex()).get(ableAttack.getColIndex());

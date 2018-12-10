@@ -28,6 +28,7 @@ public class GlobalValues {
 
     //会话参数
     private SessionData sessionData;
+    private TankPosition attackTarget;
 
 
 }

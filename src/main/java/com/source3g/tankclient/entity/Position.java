@@ -1,6 +1,8 @@
 package com.source3g.tankclient.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
@@ -8,6 +10,8 @@ import java.util.Objects;
  * Created by alenfive1 on 17-9-17.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Position {
     public int rowIndex = 0;
     public int colIndex = 0;

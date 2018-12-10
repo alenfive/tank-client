@@ -20,8 +20,8 @@ public class SessionData {
     private Date gameOverTime;
 
     //坦克最后的移动位置
-    private List<TankPosition> tankPositions;
+    private List<TankPosition> tankLastPosList;
 
-    //虚拟leader
-    private Leader leader;
+    //坦克初始化位置
+    private List<TankPosition> tankInitPosList;
 }

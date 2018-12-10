@@ -1,6 +1,11 @@
 package com.source3g.tankclient.service;
 
 import com.source3g.tankclient.action.*;
+import com.source3g.tankclient.action.Tank1Action.TankOneService;
+import com.source3g.tankclient.action.Tank2Action.TankTwoService;
+import com.source3g.tankclient.action.Tank3Action.TankThreeService;
+import com.source3g.tankclient.action.Tank4Action.TankFourService;
+import com.source3g.tankclient.action.Tank5Action.TankFiveService;
 import com.source3g.tankclient.entity.Action;
 import com.source3g.tankclient.entity.ClientParam;
 import com.source3g.tankclient.entity.GlobalValues;
@@ -17,22 +22,21 @@ public class MainService {
 
     @Autowired
     private InitAction initAction;
-
-    @Autowired
-    private OnPatrolAction onPatrolAction;
-
-    @Autowired
-    private GlodPickupAction glodPickupAction;
-    @Autowired
-    private AttackBossAction attackBossAction;
-    @Autowired
-    private DefenseAction defenseAction;
     @Autowired
     private LiveAction liveAction;
     @Autowired
-    private AttackEnemyAction attackEnemyAction;
-    @Autowired
     private MapService mapService;
+    @Autowired
+    private TankOneService tankOneService;
+    @Autowired
+    private TankTwoService tanTwoService;
+    @Autowired
+    private TankThreeService tankThreeService;
+    @Autowired
+    private TankFourService tankFourService;
+    @Autowired
+    private TankFiveService tankFiveService;
+
     @Autowired
     private AttackService attackService;
 
@@ -50,30 +54,31 @@ public class MainService {
         //复活币使用策略
         liveAction.process(params,params.getResultAction());
 
-
+        //计算一个攻击目标
+        params.setAttackTarget(attackService.prepareAttackTarget(params));
 
         //过淲无生命值的操作
         List<Action> actions = params.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 
-        //是否有复活币
-        glodPickupAction.process(params,actions);
+        for (Action action : actions){
+            int suffix = Integer.valueOf(action.getTId().substring(1,2));
+            switch (suffix){
+                case 1:tankOneService.action(params,action);break;
+                case 2:tanTwoService.action(params,action);break;
+                case 3:tankThreeService.action(params,action);break;
+                case 4:tankFourService.action(params,action);break;
+                case 5:tankFiveService.action(params,action);break;
+            }
+        }
 
-        //有敌人
-        attackEnemyAction.process(params,actions);
-
-        //攻击BOSS
-        attackBossAction.process(params,actions);
-
-        //扫图
-        onPatrolAction.process(params,actions);
 
         List<Action> sortedActions = params.getResultAction().stream().sorted(Comparator.comparing(Action::getSort)).collect(Collectors.toList());
 
         //更新最后的位置
-        params.getSessionData().getTankPositions().forEach(item->{
+        params.getSessionData().getTankLastPosList().forEach(item->{
             Position pos = mapService.getPosition(params.getView(),item.getTId());
             if (pos != null){
-                item.setPosition(pos);
+                item.setPos(pos);
             }
         });
         return sortedActions;

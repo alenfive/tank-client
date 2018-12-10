@@ -14,5 +14,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TankPosition {
     private String tId;
-    private Position position;
+    private Position pos;
+    private Tank tank;
+
+    public int getSuffix(){
+        return Integer.valueOf(tId.substring(1,2));
+    }
 }

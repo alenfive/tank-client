@@ -1,16 +1,16 @@
 package com.source3g.tankclient.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.source3g.tankclient.entity.*;
 import com.source3g.tankclient.service.MainService;
 import com.source3g.tankclient.service.MapService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.Date;
@@ -33,9 +33,10 @@ public class ClientController {
 
     private static SessionData sessionData;
 
-    @PostConstruct
-    public void systemInit(){
 
+    @GetMapping("/systemInit")
+    public void systemInitUrl(){
+        log.info("初始化成功");
     }
 
     @PostMapping("/init")
@@ -47,32 +48,20 @@ public class ClientController {
         sessionData.setGameOverTime(new Date(System.currentTimeMillis()+5*60*1000));
 
         TeamDetail currTeam = objectMapper.readValue(objectMapper.writeValueAsString("tB".equals(clientParam.getTeam())?clientParam.getTB():clientParam.getTC()), TeamDetail.class);
-        List<TankPosition> tankPositions = currTeam.getTanks().stream().map(item->{
+        List<TankPosition> tankInitPosList = currTeam.getTanks().stream().map(item->{
             Position pos = mapService.getPosition(clientParam.getView(),item.getTId());
 
             Assert.notNull(pos,"坦克信息不全，重新开始游戏");
 
-            return TankPosition.builder().tId(item.getTId()).position(pos).build();
+            return TankPosition.builder().tId(item.getTId()).tank(item).pos(pos).build();
         }).collect(Collectors.toList());
 
-        Position leaderPos = buildLeaderPos(clientParam.getView(),currTeam);
-        sessionData.setLeader(Leader.builder().currPos(leaderPos).build());
-        sessionData.setTankPositions(tankPositions);
+        sessionData.setTankLastPosList(objectMapper.readValue(objectMapper.writeValueAsBytes(tankInitPosList),new TypeReference<List<TankPosition>>(){}));
+        sessionData.setTankInitPosList(objectMapper.readValue(objectMapper.writeValueAsBytes(tankInitPosList),new TypeReference<List<TankPosition>>(){}));
 
         mapService.log(clientParam.getView());
         mainService.init(clientParam);
     }
-
-    private Position buildLeaderPos(TMap view,TeamDetail currTeam) {
-        for(Tank tank : currTeam.getTanks()){
-            int suffix = Integer.valueOf(tank.getTId().substring(1,2));
-            if(suffix == 2){
-                return mapService.getPosition(view,tank.getTId());
-            }
-        }
-        return null;
-    }
-
 
     @PostMapping("/action")
     public synchronized List<Action> action(@RequestBody ClientParam clientParam) throws Exception {
@@ -84,7 +73,6 @@ public class ClientController {
             this.init(clientParam);
         }
         clientParam.setSessionData(sessionData);
-        sessionData.getLeader().setFinalPos(null);
         List<Action> actions = mainService.action(clientParam);
 
         actions.stream().filter(item->item.getLength()>0).forEach(item-> System.out.println(item.getTId()+":"+item.getLength()+":"+item.getDirection()+":"+item.getType()+":"+item.getSort()));

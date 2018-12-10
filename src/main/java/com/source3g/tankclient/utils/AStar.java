@@ -183,7 +183,7 @@ public class AStar {
 
     public int countStep(Position currPos, Position targetPos) {
         Position head = findPath(currPos,targetPos);
-        if (head == null)return -1;
+        if (head == null)return 999999;
         int step = 0;
         if(head == null)return step;
         while (head.getParent() != null){

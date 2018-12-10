@@ -29,7 +29,7 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,List<Action>>
     @Override
     public NodeType process(GlobalValues params, List<Action> actions) {
 
-        for (Action action : actions) {
+       /* for (Action action : actions) {
 
             if (action.isUsed()) continue;
 
@@ -53,8 +53,8 @@ public class AttackBossAction extends AbstractActiion<GlobalValues,List<Action>>
             }
 
             action.setTarget(positions.get(0));
-            moveService.buildMove(params,action);
-        }
+            //moveService.buildMove(params,action);
+        }*/
 
         return NodeType.Success;
     }

@@ -60,7 +60,7 @@ public class LeaderService {
      */
     public void buildLeader(GlobalValues params, List<Action> actions, Position nextPos) {
 
-        if(nextPos == null){
+        /*if(nextPos == null){
             return;
         }
 
@@ -77,7 +77,7 @@ public class LeaderService {
             Action action = actions.stream().filter(item->item.getTId().equals(mId)).findFirst().orElse(null);
             moveService.buildMove(params,action);
         }
-
+*/
 
         //判断移动后队友是否能跟上，不能跟上就不动
         /*boolean flag = true;
@@ -94,7 +94,7 @@ public class LeaderService {
             if(itemTagetPos == null){
                 continue;
             }
-            Position itemCurrPos = mapService.getPosition(params.getView(),action.getTId());
+            Position itemCurrPos = mapService.getPos(params.getView(),action.getTId());
 
             if(itemCurrPos == null){
                 continue;

@@ -185,7 +185,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
         return true;
     }
 
-    //寻找落单的-周围半径1以上的落单者，倒序
+    /*//寻找落单的-周围半径1以上的落单者，倒序
     private Position buildMassPos(GlobalValues params, List<Position> enemyPosList) {
         int scope = params.getView().getRowLen()/2;
         MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
@@ -209,7 +209,7 @@ public class AttackEnemyAction extends AbstractActiion<GlobalValues,List<Action>
 
         return target;
 
-    }
+    }*/
 
 
 }

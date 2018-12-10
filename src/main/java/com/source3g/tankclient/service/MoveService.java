@@ -81,25 +81,27 @@ public class MoveService {
         Integer currShengmin = params.getCurrTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
         Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
 
-        //会被敌方攻击到，并且打不过，撤退
-        if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
-            List<DiffPosition> beAttackeds = attackService.beAttacked(params,currPos,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
+        //大于对方三倍，直接上，不退
+        /*if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
+            return null;
+        }*/
 
-            if(beAttackeds.isEmpty())return null;
+        List<DiffPosition> beAttackeds = attackService.beAttacked(params,currPos,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
 
-            if(beAttackeds.size() == 1){
-                int diffCurr = beAttackeds.get(0).getTank().getShengyushengming()/currTank.getGongji();
-                int diffEnemy = currTank.getShengyushengming()/beAttackeds.get(0).getTank().getGongji();
-                List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getPos(),params.getCurrTeam().getTanks());
+        if(beAttackeds.isEmpty())return null;
 
-                if(diffPos.size() == 1 && diffCurr <= diffEnemy){ //1V1
-                    return null;
-                }else if(diffPos.size() > 1){ //被我方二个及以上坦克锁定不撤退
-                    return null;
-                }
-                //将要被我方二个及以上锁定时不撤退
+        if(beAttackeds.size() == 1){
+            int diffCurr = beAttackeds.get(0).getTank().getShengyushengming()/currTank.getGongji();
+            int diffEnemy = currTank.getShengyushengming()/beAttackeds.get(0).getTank().getGongji();
+            List<DiffPosition> diffPos = attackService.beAttacked(params,beAttackeds.get(0).getPos(),params.getCurrTeam().getTanks());
 
+            if(diffPos.size() == 1 && diffCurr <= diffEnemy){ //1V1
+                return null;
+            }else if(diffPos.size() > 1){ //被我方二个及以上坦克锁定不撤退
+                return null;
             }
+            //将要被我方二个及以上锁定时不撤退
+
         }
 
         return buildLeavePos(params,currTank,currPos);
@@ -179,7 +181,22 @@ public class MoveService {
         //找个空白点用于定位
         mapService.buildBlank(params,currPos,targetPos);
 
-        if(currTank.getYidong() == 1){
+        //创建一个新视图避免走入弹路
+        TMap view = attackLine?mapService.copyAttackLine(params):params.getView();
+        AStar aStar = new AStar(view);
+
+        //获取最大行进路线
+        Position nextPos = aStar.findPath(currPos,targetPos);
+
+        //没有下一步就不动
+        if(nextPos == null || nextPos.getParent() == null)return;
+
+        nextPos = mapService.getMaxNext(currTank,currPos,nextPos);
+
+        //根据坐标，计算方位和步长
+        this.buildAction(params,action,currPos,nextPos);
+
+        /*if(currTank.getYidong() == 1){
             //创建一个新视图避免走入弹路
             TMap view = attackLine?mapService.copyAttackLine(params):params.getView();
             AStar aStar = new AStar(view);
@@ -200,19 +217,37 @@ public class MoveService {
 
             //没有下一步就不动
             if(nextPos == null || nextPos.getParent() == null)return;
-            List<Position> attackLinePos = attackService.enemyAttackPosList(params);
-            Position next1 = nextPos.getParent();
-            Position next2 = nextPos.getParent().getParent();
-            Position finalPos = next1;
-            if(next2 != null && (next1.getRowIndex() == next2.getRowIndex() || next1.getColIndex() == next2.getColIndex()) && !attackLinePos.contains(next2)){
-                finalPos = next2;
+
+            if(attackLine){
+                List<Position> attackLinePos = attackService.enemyAttackPosList(params);
+                Position next1 = nextPos.getParent();
+                Position next2 = nextPos.getParent().getParent();
+                Position finalPos = next1;
+                if(next2 != null && (next1.getRowIndex() == next2.getRowIndex() || next1.getColIndex() == next2.getColIndex()) && !attackLinePos.contains(next2)){
+                    finalPos = next2;
+                }
+
+                if (attackLinePos.contains(finalPos)){
+                    //创建一个新视图避免走入弹路
+                    TMap view = mapService.copyAttackLine(params);
+                    aStar = new AStar(view);
+                    nextPos = aStar.findPath(currPos,targetPos);
+                    //没有下一步就不动
+                    if(nextPos == null || nextPos.getParent() == null)return;
+                    finalPos = mapService.getMaxNext(currTank,currPos,nextPos);
+                }
+
+                //根据坐标，计算方位和步长
+                this.buildAction(params,action,currPos,finalPos);
+                return;
+            }else{
+                nextPos = mapService.getMaxNext(currTank,currPos,nextPos);
+                //根据坐标，计算方位和步长
+                this.buildAction(params,action,currPos,nextPos);
+                return;
             }
 
-            if (attackLinePos.contains(finalPos)){
-
-            }
-
-        }
+        }*/
 
     }
 

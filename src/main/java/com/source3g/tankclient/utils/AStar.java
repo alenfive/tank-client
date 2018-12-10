@@ -56,22 +56,53 @@ public class AStar {
         int topC = currentNode.colIndex;
         if (canReach(topR, topC) && !exists(closeList, topR, topC)) {
             arrayList.add(new Position(topR, topC));
+
+           /* topR = currentNode.rowIndex -2;
+            topC = currentNode.colIndex;
+            if (canReach(topR, topC) && !exists(closeList, topR, topC)) {
+                arrayList.add(new Position(topR, topC));
+            }*/
         }
+
         int bottomR = currentNode.rowIndex + 1;
         int bottomC = currentNode.colIndex;
         if (canReach(bottomR, bottomC) && !exists(closeList, bottomR, bottomC)) {
             arrayList.add(new Position(bottomR, bottomC));
+
+            /*bottomR = currentNode.rowIndex + 2;
+            bottomC = currentNode.colIndex;
+            if (canReach(bottomR, bottomC) && !exists(closeList, bottomR, bottomC)) {
+                arrayList.add(new Position(bottomR, bottomC));
+            }*/
         }
+
+
         int leftR = currentNode.rowIndex;
         int leftC = currentNode.colIndex - 1;
         if (canReach(leftR, leftC) && !exists(closeList, leftR, leftC)) {
             arrayList.add(new Position(leftR, leftC));
+
+            /*leftR = currentNode.rowIndex;
+            leftC = currentNode.colIndex - 2;
+            if (canReach(leftR, leftC) && !exists(closeList, leftR, leftC)) {
+                arrayList.add(new Position(leftR, leftC));
+            }*/
         }
+
+
         int rightR = currentNode.rowIndex;
         int rightC = currentNode.colIndex + 1;
         if (canReach(rightR, rightC) && !exists(closeList, rightR, rightC)) {
             arrayList.add(new Position(rightR, rightC));
+
+            /*rightR = currentNode.rowIndex;
+            rightC = currentNode.colIndex + 2;
+            if (canReach(rightR, rightC) && !exists(closeList, rightR, rightC)) {
+                arrayList.add(new Position(rightR, rightC));
+            }*/
         }
+
+
         return arrayList;
     }
 

@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 public class TankClientApplication implements CommandLineRunner{
 
 	@Value("${server.port}")
-	private String severPort;
+	private Integer severPort;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -37,6 +37,8 @@ public class TankClientApplication implements CommandLineRunner{
 
 	@Override
 	public void run(String... strings) {
-		restTemplate.getForEntity("http://localhost:"+severPort+"//player/systemInit",null);
+		if (severPort >0){
+			restTemplate.getForEntity("http://localhost:"+severPort+"//player/systemInit",null);
+		}
 	}
 }

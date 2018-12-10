@@ -148,17 +148,21 @@ public class AttackService {
      * @param currPos
      */
     public Position buildPrepareAttackPos(GlobalValues params, TankPosition attackTarget, Tank currTank, Position currPos) {
+
+        //如果有已方一个以上的其他队友锁定了这个敌人，那么攻击前的站位应该是可攻击位置
+        List<DiffPosition> diffPos = this.beAttacked(params,attackTarget.getPos(),params.getCurrTeam().getTanks());
+        if (diffPos.size() > 1){
+
+
+
+            return null;
+        }
+
         Position enemyPos = attackTarget.getPos();
 
-        List<Position> preAttackPosList = new ArrayList<>();
-        for(int i=1;i<=currTank.getShecheng();i++){
-            preAttackPosList.addAll(Arrays.asList(
-                    new Position(enemyPos.getRowIndex()-i,enemyPos.getColIndex()),
-                    new Position(enemyPos.getRowIndex(),enemyPos.getColIndex()+i),
-                    new Position(enemyPos.getRowIndex()+i,enemyPos.getColIndex()),
-                    new Position(enemyPos.getRowIndex(),enemyPos.getColIndex()-i)
-            ));
-        }
+        TMap view = mapService.copyAttackLine(params);
+
+        List<Position> preAttackPosList = mapService.findByMapEnum(view,enemyPos.getRowIndex()-1,enemyPos.getRowIndex()+1,enemyPos.getColIndex()-1,enemyPos.getColIndex()+1,MapEnum.M1,MapEnum.M3,MapEnum.M3);
 
         List<Position> attackPos = this.enemyAttackPosList(params);
 
@@ -173,10 +177,9 @@ public class AttackService {
 
         if (preAttackPosList.isEmpty())return null;
 
-        TMap view = mapService.copyAttackLine(params);
-
         DiffPosition preFinalDiffPos = preAttackPosList.stream().map(item->{
             AStar aStar = new AStar(view);
+            aStar.appendBlockList(currTank.getTId());
             int diff = aStar.countStep(currPos,item);
             return DiffPosition.builder().pos(item).diff(diff).build();
         }).min(Comparator.comparing(DiffPosition::getDiff)).orElse(null);
@@ -281,29 +284,40 @@ public class AttackService {
             return TankPosition.builder().pos(positions.get(0)).tank(params.getBossTeam().getTanks().get(0)).tId(params.getBossTeam().getTanks().get(0).getTId()).build();
         }
 
-        DiffPosition attackTarget = tIdSorted.stream().filter(item->params.getEnemyTeamTId().contains(item)).map(item->{
+        List<TankPosition> attackTarget = tIdSorted.stream().filter(item->params.getEnemyTeamTId().contains(item)).map(item->{
             Position pos = mapService.getPosition(params.getView(),item);
             Tank tank = params.getEnemyTeam().getTanks().stream().filter(item2->item2.getTId().equals(item)).findFirst().orElse(null);
-            return DiffPosition.builder().pos(pos).tank(tank).build();
-        }).filter(item->{
-            if (item.getPos() == null)return false;
-            //路程或射程可达的坦克
-            List<Tank> tanks = params.getCurrTeam().getTanks().stream().filter(item2->item2.getShengyushengming()>0).collect(Collectors.toList());
+            return TankPosition.builder().pos(pos).tank(tank).build();
+        }).filter(item->item.getPos() != null).collect(Collectors.toList());
 
-            Tank firstCurrTank = tanks.get((int) Math.floor(Math.random() * tanks.size()));
-            Position firstCurrPos = mapService.getPosition(params.getView(),firstCurrTank.getTId());
-            AStar aStar = new AStar(mapService.copyAttackLine(params,item.getTank().getTId()));
-            aStar.appendBlockList(params.getCurrTeamTId());
-            aStar.appendBlockList(item.getTank().getTId());
-            aStar.findPath(firstCurrPos,item.getPos());
-            return firstCurrPos != null && firstCurrPos.getParent()!=null;
-        }).findFirst().orElse(null);
-
-        if (attackTarget == null) return null;
-
-        return TankPosition.builder().pos(attackTarget.getPos()).tank(attackTarget.getTank()).tId(attackTarget.getTank().getTId()).build();
+        return buildMassPos(params,attackTarget);
     }
 
+    //寻找落单的-周围半径1以上的落单者，倒序
+    private TankPosition buildMassPos(GlobalValues params, List<TankPosition> enemyPosList) {
+        int scope = params.getView().getRowLen()/2;
+        MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
+
+        TankPosition target = null;
+        for(int i=scope;i>=1;i--){
+            for(TankPosition currPos : enemyPosList){
+                int startR = currPos.getPos().getRowIndex()-i;
+                int endR = currPos.getPos().getRowIndex()+i;
+                int startC = currPos.getPos().getColIndex()-i;
+                int endC = currPos.getPos().getColIndex()+i;
+
+                List<Position> enumsResut = mapService.findByMapEnum(params.getView(),startR,endR,startC,endC,enums);
+                if(enumsResut.size() == 1){
+                    target = currPos;
+                    break;
+                }
+            }
+            if(target != null)break;
+        }
+
+        return target;
+
+    }
 
 
     /* -----------------------------BOSS---------------------------------*/

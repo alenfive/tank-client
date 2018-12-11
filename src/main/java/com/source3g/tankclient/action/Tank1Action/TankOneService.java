@@ -42,7 +42,7 @@ public class TankOneService {
         //攻击敌方
         TankPosition ableAttackPos = attackService.ableAttackTop(params,currTank,currPos);
         if (ableAttackPos != null){
-            attackService.attackTank(view,currTank,action,currPos,ableAttackPos.getPos(),ableAttackPos.getTank());
+            attackService.attackTank(params,view,currTank,action,currPos,ableAttackPos.getPos(),ableAttackPos.getTank());
             return;
         }
 
@@ -56,7 +56,7 @@ public class TankOneService {
         //攻击boss
         TankPosition ableAttackBoss = attackService.buildAbleAttackBossPos(params,currTank,currPos);
         if (ableAttackBoss != null){
-            attackService.attackTank(view,currTank,action,currPos,ableAttackBoss.getPos(),ableAttackBoss.getTank());
+            attackService.attackTank(params,view,currTank,action,currPos,ableAttackBoss.getPos(),ableAttackBoss.getTank());
             return;
         }
 

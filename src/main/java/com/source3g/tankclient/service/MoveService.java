@@ -82,9 +82,9 @@ public class MoveService {
         Integer enemyShengmin = params.getEnemyTeam().getTanks().stream().map(item->item.getShengyushengming()).reduce(Integer::sum).get();
 
         //大于对方三倍，直接上，不退
-        /*if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
+        if(currShengmin < enemyShengmin*3 && params.getEnemyTeam().getGlod() == 0){
             return null;
-        }*/
+        }
 
         List<DiffPosition> beAttackeds = attackService.beAttacked(params,currPos,params.getEnemyTeam().getTanks()).stream().collect(Collectors.toList());
 

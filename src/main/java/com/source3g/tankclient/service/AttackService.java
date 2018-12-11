@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 /**
  * 攻击
  */
+@SuppressWarnings("Duplicates")
 @Service
 public class AttackService {
 
@@ -108,20 +109,6 @@ public class AttackService {
         return leavePos;
     }
 
-    /**
-     * 是否会被攻击
-     * @param view
-     * @param currTank
-     * @param enemyTank
-     * @return
-     */
-    public boolean isAbeAttacked(TMap view, Tank currTank, Tank enemyTank){
-        Position currPos = mapService.getPosition(view,currTank.getTId());
-        Position enemyPos = mapService.getPosition(view,enemyTank.getTId());
-        if(enemyPos == null || currPos == null)return false;
-        int diff = Math.abs(enemyPos.getRowIndex()-currPos.getRowIndex())+Math.abs(enemyPos.getColIndex()-currPos.getColIndex());
-        return (currPos.getRowIndex()==enemyPos.getRowIndex() || currPos.getColIndex() == enemyPos.getColIndex()) && diff<=enemyTank.getShecheng();
-    }
 
     /**
      * 是否会被攻击
@@ -297,7 +284,7 @@ public class AttackService {
      * @param targetPos
      * @param targetTank
      */
-    public void attackTank(TMap view, Tank currTank, Action action, Position currPos, Position targetPos, Tank targetTank) {
+    public void attackTank(GlobalValues params,TMap view, Tank currTank, Action action, Position currPos, Position targetPos, Tank targetTank) {
         DirectionEnum direct = DirectionEnum.UP;
         if(currPos.getRowIndex()<targetPos.getRowIndex()){
             direct = DirectionEnum.DOWN;
@@ -312,7 +299,16 @@ public class AttackService {
         action.setLength(diff);
         action.setUsed(true);
 
-        //打死BOSS后地图上移除
+        //生命值减血
+        if (MapEnum.A1.name().equals(targetTank.getTId())){
+            Tank bossTank = params.getBossTeam().getTanks().stream().filter(item->item.getTId().equals(targetTank.getTId())).findFirst().get();
+            bossTank.setShengyushengming(bossTank.getShengyushengming()-currTank.getGongji());
+        }else{
+            Tank enemyTank = params.getEnemyTeam().getTanks().stream().filter(item->item.getTId().equals(targetTank.getTId())).findFirst().get();
+            enemyTank.setShengyushengming(enemyTank.getShengyushengming()-currTank.getGongji());
+        }
+
+        //打死后地图上移除
         if(targetTank.getShengyushengming()-currTank.getGongji() <=0){
             view.getMap().get(targetPos.getRowIndex()).set(targetPos.getColIndex(),MapEnum.M1.name());
         }

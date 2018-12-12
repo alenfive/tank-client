@@ -57,7 +57,7 @@ public class LiveAction extends AbstractActiion<GlobalValues,List<Action>> {
 
                 TankPosition tankPosition = attackService.ableAttackTop(params,tank,itemPos);
                 //能攻击到对方
-                if (tankPosition.getTank().getTId().equals(ableAttackTankId)){
+                if (tankPosition != null && tankPosition.getTank() != null && tankPosition.getTank().getTId().equals(ableAttackTankId)){
 
                     //对敌方的剩余生命和我方复活后的生命战斗力做比较
                     int diffCurr = (ableAttackTank.getShengyushengming()+tank.getGongji()-1)/tank.getGongji();

@@ -20,6 +20,8 @@ public class AttackService {
 
     @Autowired
     private MapService mapService;
+    @Autowired
+    private MoveService moveService;
 
     //默认攻击顺序
     private final List<String> tIdSorted = Arrays.asList("A1","C1","B1","C3","B3","C4","B4","C5","B5","C2","B2");
@@ -68,6 +70,28 @@ public class AttackService {
     public List<Position> enemyAttackPosList(GlobalValues params){
         List<Position> attackPos = new ArrayList<>();
         for(Tank tank : params.getEnemyTeam().getTanks()){
+            Position tankPos = mapService.getPosition(params.getView(),tank.getTId());
+            if(tankPos == null)continue;
+            attackPos.add(tankPos);
+
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,-1,0));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,0,1));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,1,0));
+            attackPos.addAll(buildAbleFirePos(params,tank.getShecheng(),tankPos,0,-1));
+
+        }
+
+        return attackPos;
+    }
+
+    /**
+     * 队伍的弹道
+     * @param params
+     * @return
+     */
+    public List<Position> attackLinePosList(GlobalValues params,List<Tank> tanks){
+        List<Position> attackPos = new ArrayList<>();
+        for(Tank tank : tanks){
             Position tankPos = mapService.getPosition(params.getView(),tank.getTId());
             if(tankPos == null)continue;
             attackPos.add(tankPos);
@@ -171,7 +195,7 @@ public class AttackService {
      */
     public Position buildPrepareAttackPos(GlobalValues params, TankPosition attackTarget, Tank currTank, Position currPos) {
 
-        //如果有已方一个以上的其他队友锁定了这个敌人，那么攻击前的站位应该是可攻击位置
+        //如果有已方一个以上的其他队友锁定了这个敌人,并且当前坦克不是用来卡位的，那么攻击前的站位应该是可攻击位置
         List<DiffPosition> diffPos = this.beAttacked(params,attackTarget.getPos(),params.getCurrTeam().getTanks());
         diffPos = diffPos.stream().filter(item->!item.getTank().getTId().equals(currTank.getTId())).collect(Collectors.toList());
         if (diffPos.size() > 0){
@@ -197,7 +221,7 @@ public class AttackService {
 
         TMap view = mapService.copyAttackLine(params);
 
-        List<Position> preAttackPosList = mapService.findByMapEnum(view,enemyPos.getRowIndex()-1,enemyPos.getRowIndex()+1,enemyPos.getColIndex()-1,enemyPos.getColIndex()+1,MapEnum.M1,MapEnum.M3,MapEnum.M3);
+        List<Position> preAttackPosList = mapService.findByMapEnum(view,enemyPos.getRowIndex()-1,enemyPos.getRowIndex()+1,enemyPos.getColIndex()-1,enemyPos.getColIndex()+1,MapEnum.M1,MapEnum.M2,MapEnum.M3);
 
         List<Position> attackPos = this.enemyAttackPosList(params);
 
@@ -334,11 +358,37 @@ public class AttackService {
             return TankPosition.builder().pos(pos).tank(tank).build();
         }).filter(item->item.getPos() != null).collect(Collectors.toList());
 
-        return buildMassPos(params,attackTarget);
+        ////寻找无路可走的敌方坦克
+        TankPosition targetTankPos = ableMoveZero(params,attackTarget);
+        if (targetTankPos != null){
+            return targetTankPos;
+        }
+
+        //寻找落单的-周围半径1以上的落单者，倒序
+        targetTankPos = buildMassPos(params,attackTarget);
+        return targetTankPos;
     }
+
+    //寻找无路可走的敌方坦克
+    private TankPosition ableMoveZero(GlobalValues params, List<TankPosition> attackTarget) {
+        List<Position> attackPos = this.attackLinePosList(params,params.getCurrTeam().getTanks());
+        return attackTarget.stream().filter(item->{
+
+            List<Position> ableMovePos = moveService.buildAbleMovePos(params,item.getTank(),item.getPos());
+            ableMovePos.removeAll(attackPos);
+            if (ableMovePos.size() <=1){
+                return true;
+            }
+            return false;
+        }).findFirst().orElse(null);
+    }
+
 
     //寻找落单的-周围半径1以上的落单者，倒序
     private TankPosition buildMassPos(GlobalValues params, List<TankPosition> enemyPosList) {
+
+
+
         int scope = params.getView().getRowLen()/2;
         MapEnum[] enums = params.getEnemyTeamTId().stream().map(MapEnum::valueOf).toArray(MapEnum[]::new);
 

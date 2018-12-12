@@ -288,7 +288,7 @@ public class MapService {
             });
 
 
-            this.log(result);
+            //this.log(result);
 
             return result;
         } catch (IOException e) {

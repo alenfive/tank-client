@@ -38,7 +38,7 @@ public class MoveService {
         params.setSortNo(params.getSortNo()+1);
 
 
-        mapService.log(params.getView());
+        //mapService.log(params.getView());
     }
 
 
@@ -108,8 +108,7 @@ public class MoveService {
 
     }
 
-    private Position buildLeavePos(GlobalValues params,Tank currTank,Position currPos){
-        //搜索逃离点
+    public List<Position> buildAbleMovePos(GlobalValues params,Tank currTank,Position currPos){
         List<Position> movePos = new ArrayList<>();
         movePos.add(currPos);
         //top
@@ -120,12 +119,19 @@ public class MoveService {
         movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,1,0));
         //left
         movePos.addAll(buildAbleMovePos(params.getView(),currTank.getYidong(),currPos,0,-1));
+        return movePos;
+    }
 
-        if(movePos.isEmpty()){
+    private Position buildLeavePos(GlobalValues params,Tank currTank,Position currPos){
+
+        //搜索逃离点
+        List<Position> ableMovePos = buildAbleMovePos(params,currTank,currPos);
+
+        if(ableMovePos.isEmpty()){
             return null;
         }
 
-        List<DiffPosition> leavePos = movePos.stream().map(item->{
+        List<DiffPosition> leavePos = ableMovePos.stream().map(item->{
             List<DiffPosition> diffAll = attackService.beAttacked(params,item,params.getEnemyTeam().getTanks());
             int diff = diffAll.stream().mapToInt(item2->item2.getTank().getGongji()).sum();
             return DiffPosition.builder().diff(diff).pos(item).build();

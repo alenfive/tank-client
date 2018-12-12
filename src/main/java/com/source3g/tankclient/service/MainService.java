@@ -57,6 +57,9 @@ public class MainService {
         //计算一个攻击目标
         params.setAttackTarget(attackService.prepareAttackTarget(params));
 
+        System.out.println(params.getAttackTarget()==null?null:params.getAttackTarget().getTank().getTId());
+
+
         //过淲无生命值的操作
         List<Action> actions = params.getResultAction().stream().filter(item->item.getTank().getShengyushengming()>0).collect(Collectors.toList());
 

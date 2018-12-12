@@ -77,6 +77,9 @@ public class TankFourService {
         }
         if(targetPos == null){
             targetPos = moveService.scanMapNextPosition(params,currTank,1);
+            if (targetPos == null){
+                targetPos = moveService.scanMapNextPosition(params,currTank,-1);
+            }
         }
 
         //扫完图

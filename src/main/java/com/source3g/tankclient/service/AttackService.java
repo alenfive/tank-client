@@ -359,14 +359,13 @@ public class AttackService {
         }).filter(item->item.getPos() != null).collect(Collectors.toList());
 
         ////寻找无路可走的敌方坦克
-        TankPosition targetTankPos = ableMoveZero(params,attackTarget);
+       /* TankPosition targetTankPos = ableMoveZero(params,attackTarget);
         if (targetTankPos != null){
             return targetTankPos;
-        }
+        }*/
 
         //寻找落单的-周围半径1以上的落单者，倒序
-        targetTankPos = buildMassPos(params,attackTarget);
-        return targetTankPos;
+        return buildMassPos(params,attackTarget);
     }
 
     //寻找无路可走的敌方坦克
